@@ -24,6 +24,7 @@
 #include <iostream>
 #include <cuda_runtime.h>
 #include <cuda.h>
+#include <math.h>
 #include <iostream>
 #include <cmath>
 
@@ -144,6 +145,11 @@ public:
     CUDA_CALLABLE_MEMBER double sum() const {
         return data[0] + data[1] + data[2];
     } // sums all components of the vector
+
+    CUDA_CALLABLE_MEMBER Vec normalized() const {
+        double l = norm();
+        return l > 0 ? (*this)/l : (*this);
+    }
 
 private:
     double data[3] = { 0 }; // initialize data to 0

@@ -11,7 +11,7 @@
 #include "vec.h"
 
 #define MAX_BLOCKS 65535 // max number of CUDA blocks
-#define THREADS_PER_BLOCK 1024
+#define THREADS_PER_BLOCK 512
 
 #ifndef GRAPHICS
 #define NUM_QUEUED_KERNELS 4 // number of kernels to queue at a given time (this will reduce the frequency of updates from the CPU by this factor
@@ -29,6 +29,7 @@
 
 #include <algorithm>
 #include <list>
+#include <limits>
 #include <vector>
 #include <set>
 #include <thread>
@@ -56,6 +57,7 @@ public:
 
     void getAll();
     void setAll();
+    void toArray();
 
     // Global constraints (can be rendered)
     void createPlane(const Vec & abc, double d ); // creates half-space ax + by + cz < d
@@ -81,7 +83,10 @@ public:
     void defaultRestLength();
 
     // Control
+    void initCudaParameters();
+
     void start(); // start simulation
+    void step(double size); // one step of simulation
 
     void stop(); // stop simulation while paused, free all memory.
     void stop(double time); // stop simulation at time
@@ -111,12 +116,20 @@ public:
     std::vector<Mass *> masses;
     std::vector<Spring *> springs;
     std::vector<Container *> containers;
+    std::vector<ContactPlane *> planes;
+
+    Vec global; // global force
 
     void setGlobalAcceleration(const Vec & global);
+    void rebalanceMasses(double m);
 
 #ifdef GRAPHICS
     void setViewport(const Vec & camera_position, const Vec & target_location, const Vec & up_vector);
     void moveViewport(const Vec & displacement);
+#else
+    // Methods for filling external graphics buffers
+    void exportMassVertices(unsigned int buffer);
+    void exportSpringIndices(unsigned int buffer);
 #endif
 
 private:
@@ -164,7 +177,6 @@ private:
     CUDA_MASS ** massToArray();
     CUDA_SPRING ** springToArray();
     void constraintsToArray();
-    void toArray();
 
     void massFromArray();
     void springFromArray();
@@ -172,7 +184,6 @@ private:
     void fromArray();
 
     std::thread gpu_thread;
-    Vec global; // global force
 
 #ifdef GRAPHICS
 

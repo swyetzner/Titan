@@ -13,6 +13,7 @@ Mass::Mass() {
     valid = true;
     arrayptr = nullptr;
     ref_count = 0;
+    springCount = 0;
 
 #ifdef GRAPHICS
     color = Vec(1.0, 0.2, 0.2);
@@ -54,6 +55,7 @@ Mass::Mass(const Vec & position, double mass, bool fixed, double dt) {
     valid = true;
     arrayptr = nullptr;
     ref_count = 0;
+    springCount = 0;
 
 #ifdef GRAPHICS
     color = Vec(1.0, 0.2, 0.2);

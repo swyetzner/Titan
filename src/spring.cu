@@ -18,15 +18,26 @@ Vec Spring::getForce() { // computes force on right object. left force is - righ
     return spring_force;
 }
 
+int Spring::getLeft() {
+    return _left -> index;
+}
+
+int Spring::getRight() {
+    return _right -> index;
+}
+
 void Spring::setForce() { // computes force on right object. left force is - right force.
     Vec f = getForce();
     _right -> force += f;
     _left -> force += -f;
 }
 
+
+
 Spring::Spring(const CUDA_SPRING & spr) {
     this -> _k = spr._k;
     this -> _rest = spr._rest;
+    this -> _max_stress = spr._max_stress;
 }
 
 void Spring::defaultLength() { _rest = (_left -> pos - _right -> pos).norm() ; } //sets Rest Lenght
@@ -50,6 +61,20 @@ void Spring::setRight(Mass * right) {
     _right -> ref_count++;
 }
 
+void Spring::operator=(CUDA_SPRING & spring) {
+
+    _left = this->_left;
+    _right = this->_right;
+
+    _k = spring._k;
+    _rest = spring._rest;
+    _type = spring._type;
+    _omega = spring._omega;
+    _max_stress = spring._max_stress;
+
+    arrayptr = this -> arrayptr;
+}
+
 CUDA_SPRING::CUDA_SPRING(const Spring & s) {
     _left = (s._left == nullptr) ? nullptr : s._left -> arrayptr;
     _right = (s._right == nullptr) ? nullptr : s. _right -> arrayptr;
@@ -57,6 +82,7 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s) {
     _rest = s._rest;
     _type = s._type;
     _omega = s._omega;
+    _max_stress = s._max_stress;
 }
 
 CUDA_SPRING::CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right) {
@@ -66,4 +92,5 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right) 
     _rest = s._rest;
     _type = s._type;
     _omega = s._omega;
+    _max_stress = s._max_stress;
 }

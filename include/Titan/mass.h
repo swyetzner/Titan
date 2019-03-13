@@ -48,9 +48,14 @@ public:
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2
     Vec force; // force in kg m / s^2
-    
+    int index; // index in masses array
+    int springCount; // number of attached springs
+    int ref_count;
+
     Mass(const Vec & position, double mass = 0.1, bool fixed = false, double dt = 0.0001);
 #ifdef CONSTRAINTS
+    LOCAL_CONSTRAINTS constraints;
+
     void addConstraint(CONSTRAINT_TYPE type, const Vec & vec, double num);
     void clearConstraints(CONSTRAINT_TYPE type);
     void clearConstraints();
@@ -66,7 +71,6 @@ public:
 
 private:
     bool valid;
-    int ref_count;
 
     void decrementRefCount();
 
@@ -84,10 +88,6 @@ private:
     friend class Beam;
     friend class Cube;
 
-#ifdef CONSTRAINTS
-    LOCAL_CONSTRAINTS constraints;
-
-#endif
 
 };
 

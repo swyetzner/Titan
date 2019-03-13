@@ -25,27 +25,29 @@ public:
     //Properties
     double _k; // spring constant (N/m)
     double _rest; // spring rest length (meters)
+    double _max_stress; // maximum stress exerienced
 
     // BREATHING
     int _type; // 0-3
     double _omega; // frequency
     
-    Mass * _left; // pointer to left mass object // private
+    Mass * _left; // pointer to left mass object
     Mass * _right; // pointer to right mass object
 
+
     //Set
-    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _type=PASSIVE_STIFF; _omega=0.0; }; //Constructor
+    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _type=PASSIVE_STIFF; _omega=0.0; _max_stress = 0.0; }; //Constructor
     
     Spring(const CUDA_SPRING & spr);
 
     Spring(Mass * left, Mass * right, double k = 10000.0, double rest_len = 1.0) :
-            _k(k), _rest(rest_len), _left(left), _right(right), arrayptr(nullptr) {}; //
+            _k(k), _rest(rest_len), _left(left), _right(right), arrayptr(nullptr), _max_stress(0) {}; //
 
     Spring(double k, double rest_length, Mass * left, Mass * right) :
-            _k(k), _rest(rest_length), _left(left), _right(right) {};
+            _k(k), _rest(rest_length), _left(left), _right(right), _max_stress(0) {};
 
     Spring(double k, double rest_length, Mass * left, Mass * right, int type, double omega) :
-            _k(k), _rest(rest_length), _left(left), _right(right), _type(type), _omega(omega) {};
+            _k(k), _rest(rest_length), _left(left), _right(right), _type(type), _omega(omega), _max_stress(0) {};
 	    
     void setForce(); // will be private
     void setRestLength(double rest_length) { _rest = rest_length; } //sets Rest length
@@ -58,11 +60,15 @@ public:
 
     //Get
     Vec getForce(); // computes force on right object. left force is - right force.
+    int getLeft();
+    int getRight();
 
 private:
     //    Mass * _left; // pointer to left mass object // private
     //    Mass * _right; // pointer to right mass object
     CUDA_SPRING *arrayptr; //Pointer to struct version for GPU cudaMalloc
+
+    void operator=(CUDA_SPRING & spring);
 
     friend class Simulation;
     friend struct CUDA_SPRING;
@@ -73,7 +79,7 @@ private:
 };
 
 struct CUDA_SPRING {
-  CUDA_SPRING() {};
+  CUDA_SPRING() : _max_stress(0) {};
   CUDA_SPRING(const Spring & s);
   
   CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right);
@@ -83,6 +89,7 @@ struct CUDA_SPRING {
   
   double _k; // spring constant (N/m)
   double _rest; // spring rest length (meters)
+  double _max_stress; // maximum stress exerienced
 
   // Breathing
   int _type;
