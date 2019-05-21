@@ -482,34 +482,14 @@ void Simulation::deleteSpring(Spring * s) {
 
         springs.resize(std::remove(springs.begin(), springs.end(), s) - springs.begin());
 
-        if (s -> _left) {
-            s -> _left -> decrementRefCount();
-            s -> _left -> spring_count--;
-        }
-        if (s -> _right) {
-            s -> _right -> decrementRefCount();
-            s -> _right -> spring_count--;
-        }
+        if (s -> _left) { s -> _left -> decrementRefCount(); }
+        if (s -> _right) { s -> _right -> decrementRefCount(); }
 
         // Update masses
-        for (Mass *m : masses) {
-            if (s->_left->spring_count > 0) {
-                if (s->_left == m) {
-                    m->m -= m->m/(m->spring_count+1);
-                }
-            } else {
-                deleteMass(s->_left);
-            }
-        }
-        for (Mass *m : masses) {
-            if (s->_right->spring_count > 0) {
-                if (s->_right == m) {
-                    m->m -= m->m/(m->spring_count+1);
-                }
-            } else {
-                deleteMass(s->_right);
-            }
-        }
+        if (s -> _left -> ref_count > 0)
+            s -> _left -> m -= s -> _left -> m / s -> _left -> ref_count;
+        if (s -> _right -> ref_count > 0)
+            s -> _right -> m -= s -> _right -> m / s -> _right -> ref_count;
 
         delete s;
 
@@ -1301,7 +1281,7 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
         mass.vel = (mass.vel + mass.acc * mass.dt)*mass.damping;
         mass.pos = mass.pos + mass.vel * mass.dt;
 
-        mass.force = Vec(0, 0, 0);
+        mass.force = mass.extforce;
     }
 }
 
