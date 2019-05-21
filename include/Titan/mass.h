@@ -8,6 +8,9 @@
 #include "vec.h"
 #include "object.h"
 
+#include <algorithm>
+using namespace  std;
+
 class Mass;
 struct CUDA_MASS;
 
@@ -20,10 +23,13 @@ struct CUDA_MASS {
     double dt; // update interval
     double T; // local time
     double damping;
+    double extduration; // duration of external force
     Vec pos; // position in m
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2
     Vec force; // force in kg m / s^2
+    Vec extforce; // external force in kg m / s^2
+    Vec maxforce; // max force by magnitude since simulation start in kg m / s^2
 
 #ifdef GRAPHICS
     Vec color;
@@ -44,14 +50,22 @@ public:
     double dt; // update interval
     double T; // local time
     double damping; // damping mass velocity
+    double extduration; // duration of external force
     Vec pos; // position in m
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2
     Vec force; // force in kg m / s^2
+    Vec extforce; // external force in kg m / s^2
+    Vec maxforce; // max force by magnitude since simulation start in kg m / s^2
+    Vec origpos; // original position in m
     int index; // index in masses array
-    int springCount; // number of attached springs
-    int ref_count;
+    int ref_count; // reference count
+    int spring_count; // number of attached springs
 
+    bool valid; // false if mass has been deleted from arrays
+
+
+    Mass(const Mass &other);
     Mass(const Vec & position, double mass = 0.1, bool fixed = false, double dt = 0.0001);
 #ifdef CONSTRAINTS
     LOCAL_CONSTRAINTS constraints;
@@ -70,7 +84,6 @@ public:
 #endif
 
 private:
-    bool valid;
 
     void decrementRefCount();
 

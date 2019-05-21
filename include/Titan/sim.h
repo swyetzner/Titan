@@ -43,6 +43,9 @@ public:
     Spring * createSpring();
     Spring * createSpring(Mass * m1, Mass * m2);
 
+    Mass * createMass(Mass * m); // utility
+    Spring * createSpring(Spring * s); // utility
+
     // Delete
     void deleteMass(Mass * m);
     void deleteSpring(Spring * s);
@@ -94,6 +97,8 @@ public:
     void pause(double t); // pause at time t
     void resume();
 
+    void freeGPU();
+
     void setBreakpoint(double time); // tell the program to stop at a fixed time (doesn't hang).
 
     void wait(double t); // wait fixed time without stopping
@@ -105,6 +110,8 @@ public:
 
     void printPositions();
     void printForces();
+
+    double getTotalMass();
 
     Simulation();
     ~Simulation();
@@ -120,8 +127,22 @@ public:
 
     Vec global; // global force
 
+    void copy(const Simulation &src);
+    void append(const Simulation &src);
+    void cpuSnapshot(const Simulation &src);
     void setGlobalAcceleration(const Vec & global);
     void rebalanceMasses(double m);
+
+    CUDA_MASS ** d_mass;
+    CUDA_SPRING ** d_spring;
+
+    int massBlocksPerGrid;
+    int springBlocksPerGrid;
+
+    // TODO can't get full thrust functionality (reduce, sort, etc.) for pointer vectors
+    // Should convert to thrust::device_vector<CUDA_MASS> type
+    thrust::device_vector<CUDA_MASS *> d_masses;
+    thrust::device_vector<CUDA_SPRING *> d_springs;
 
 #ifdef GRAPHICS
     void setViewport(const Vec & camera_position, const Vec & target_location, const Vec & up_vector);
@@ -130,19 +151,18 @@ public:
     // Methods for filling external graphics buffers
     void exportMassVertices(unsigned int buffer);
     void exportSpringIndices(unsigned int buffer);
+    void exportSpringVertices(unsigned int buffer);
+    void updateMassVertices(float *vertices);
+    void updateSpringIndices(unsigned int *indices);
 #endif
 
 private:
-    void freeGPU();
     void _run();
 
     void execute(); // same as above but w/out reset
 
     //Prints
     void printSprings();
-
-    Mass * createMass(Mass * m); // utility
-    Spring * createSpring(Spring * s); // utility
 
     double dt; // set to 0 by default, when start is called will be set to min(mass dt) unless previously set
     double T; // global simulation time
@@ -155,9 +175,6 @@ private:
 
     std::vector<Constraint *> constraints;
 
-    thrust::device_vector<CUDA_MASS *> d_masses;
-    thrust::device_vector<CUDA_SPRING *> d_springs;
-
     thrust::device_vector<CudaContactPlane> d_planes; // used for constraints
     thrust::device_vector<CudaBall> d_balls; // used for constraints
 
@@ -167,12 +184,6 @@ private:
     void updateCudaParameters();
 
     std::set<double> bpts; // list of breakpoints
-
-    CUDA_MASS ** d_mass;
-    CUDA_SPRING ** d_spring;
-
-    int massBlocksPerGrid;
-    int springBlocksPerGrid;
 
     CUDA_MASS ** massToArray();
     CUDA_SPRING ** springToArray();

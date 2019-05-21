@@ -9,11 +9,15 @@ Mass::Mass() {
     m = 1.0;
     dt = 0.0001;
     damping = 1.0;
+    extduration = 0;
+    force = Vec(0., 0., 0.);
+    extforce = Vec(0., 0., 0.);
+    maxforce = Vec(0, 0, 0);
     T = 0;
     valid = true;
     arrayptr = nullptr;
     ref_count = 0;
-    springCount = 0;
+    spring_count = 0;
 
 #ifdef GRAPHICS
     color = Vec(1.0, 0.2, 0.2);
@@ -25,10 +29,13 @@ void Mass::operator=(CUDA_MASS & mass) {
     dt = mass.dt;
     T = mass.T;
     damping = mass.damping;
+    extduration = mass.extduration;
     pos = mass.pos;
     vel = mass.vel;
     acc = mass.acc;
     force = mass.force;
+    extforce = mass.extforce;
+    maxforce = mass.maxforce;
     valid = mass.valid;
 
     ref_count = this -> ref_count;
@@ -43,19 +50,48 @@ void Mass::operator=(CUDA_MASS & mass) {
 #endif
 }
 
+// Copy constructor
+Mass::Mass(const Mass &other) {
+    m = other.m;
+    pos = other.pos;
+    origpos = other.pos;
+    dt = other.dt;
+    vel = other.vel;
+    acc = other.acc;
+    force = other.force;
+    index = other.index;
+    T = other.T;
+    damping = other.damping;
+    extduration = other.extduration;
+    extforce = other.extforce;
+    maxforce = other.maxforce;
+
+    valid = other.valid;
+    arrayptr = nullptr;
+    ref_count = other.ref_count;
+    spring_count = other.spring_count;
+
+    constraints.fixed = other.constraints.fixed;
+}
+
 Mass::Mass(const Vec & position, double mass, bool fixed, double dt) {
     m = mass;
     pos = position;
+    origpos = position;
     
     this -> dt = dt;
 
     T = 0;
     damping = 1.0;
+    force = Vec(0., 0., 0.);
+    extduration = 0;
+    extforce = Vec(0., 0., 0.);
+    maxforce = Vec(0, 0, 0);
     
     valid = true;
     arrayptr = nullptr;
     ref_count = 0;
-    springCount = 0;
+    spring_count = 0;
 
 #ifdef GRAPHICS
     color = Vec(1.0, 0.2, 0.2);
@@ -67,11 +103,14 @@ CUDA_MASS::CUDA_MASS(Mass &mass) {
     dt = mass.dt;
     T = mass.T;
     damping = mass.damping;
+    extduration = mass.extduration;
     
     pos = mass.pos;
     vel = mass.vel;
     acc = mass.acc;
     force = mass.force;
+    extforce = mass.extforce;
+    maxforce = mass.maxforce;
     valid = true;
 
 #ifdef CONSTRAINTS

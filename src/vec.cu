@@ -26,12 +26,35 @@ __device__ double atomicDoubleAdd(double* address, double val)
 
     return __longlong_as_double(old);
 }
+
+__device__ double atomicDoubleExch(double* address, double val)
+{
+    unsigned long long int* address_as_ull =
+            (unsigned long long int*)address;
+    unsigned long long int old = *address_as_ull, assumed;
+
+    do {
+        assumed = old;
+        old = atomicCAS(address_as_ull, assumed,
+                        __double_as_longlong(val));
+
+        // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    } while (assumed != old);
+
+    return __longlong_as_double(old);
+}
 #endif
 
 CUDA_DEVICE void Vec::atomicVecAdd(const Vec & v) {
 atomicDoubleAdd(&data[0], (double) v.data[0]);
 atomicDoubleAdd(&data[1], (double) v.data[1]);
 atomicDoubleAdd(&data[2], (double) v.data[2]);
+}
+
+CUDA_DEVICE void Vec::atomicVecExch(const Vec &v) {
+    atomicDoubleExch(&data[0], (double) v.data[0]);
+    atomicDoubleExch(&data[1], (double) v.data[1]);
+    atomicDoubleExch(&data[2], (double) v.data[2]);
 }
 
 //Vec::Vec() {

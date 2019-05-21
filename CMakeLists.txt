@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
+set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 project(Titan LANGUAGES C CXX CUDA) # use CXX, CUDA by default (since CUDA is a language, don't need cuda_add_executable)
 
 set(CMAKE_CXX_STANDARD 14) # set C++ standard to C++11
@@ -28,7 +29,6 @@ add_library(Titan ${TITAN_SOURCE_FILES} ${TITAN_HEADER_FILES})
 set_target_properties(Titan PROPERTIES CUDA_SEPARABLE_COMPILATION ON) # needed for library compilation
 set_target_properties(Titan PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
-target_compile_definitions(Titan PUBLIC GRAPHICS)
 target_compile_definitions(Titan PUBLIC CONSTRAINTS) # defines the CONSTRAINTS preprocessor variable (enables local constraints)
 
 if (NOT TITAN_SHARED_BUILD)

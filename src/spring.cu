@@ -14,7 +14,7 @@ Vec Spring::getForce() { // computes force on right object. left force is - righ
     Vec temp = (_left -> pos) - (_right -> pos);
     Vec spring_force = _k * (temp.norm() - _rest) * (temp / temp.norm());
 
-    spring_force += dot( (_left->vel - _right->vel) , temp/temp.norm() )*EDGE_DAMPING* (temp/temp.norm());
+    //spring_force += dot( (_left->vel - _right->vel) , temp/temp.norm() )*EDGE_DAMPING* (temp/temp.norm());
     return spring_force;
 }
 
@@ -32,12 +32,27 @@ void Spring::setForce() { // computes force on right object. left force is - rig
     _left -> force += -f;
 }
 
-
+// Copy constructor
+Spring::Spring(const Spring &other) {
+    _k = other._k;
+    _rest = other._rest;
+    _diam = other._diam;
+    _break_force = other._break_force;
+    _curr_force = other._curr_force;
+    _max_stress = other._max_stress;
+    _broken = other._broken;
+    _left = nullptr;
+    _right = nullptr;
+}
 
 Spring::Spring(const CUDA_SPRING & spr) {
     this -> _k = spr._k;
     this -> _rest = spr._rest;
+    this -> _diam = spr._diam;
+    this -> _break_force = spr._break_force;
+    this -> _curr_force = spr._curr_force;
     this -> _max_stress = spr._max_stress;
+    this -> _broken = spr._broken;
 }
 
 void Spring::defaultLength() { _rest = (_left -> pos - _right -> pos).norm() ; } //sets Rest Lenght
@@ -68,9 +83,13 @@ void Spring::operator=(CUDA_SPRING & spring) {
 
     _k = spring._k;
     _rest = spring._rest;
+    _diam = spring._diam;
     _type = spring._type;
     _omega = spring._omega;
     _max_stress = spring._max_stress;
+    _curr_force = spring._curr_force;
+    _break_force = spring._break_force;
+    _broken = spring._broken;
 
     arrayptr = this -> arrayptr;
 }
@@ -80,9 +99,13 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s) {
     _right = (s._right == nullptr) ? nullptr : s. _right -> arrayptr;
     _k = s._k;
     _rest = s._rest;
+    _diam = s._diam;
     _type = s._type;
     _omega = s._omega;
     _max_stress = s._max_stress;
+    _curr_force = s._curr_force;
+    _break_force = s._break_force;
+    _broken = s._broken;
 }
 
 CUDA_SPRING::CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right) {
@@ -90,7 +113,11 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right) 
     _right = right;
     _k = s._k;
     _rest = s._rest;
+    _diam = s._diam;
     _type = s._type;
     _omega = s._omega;
     _max_stress = s._max_stress;
+    _curr_force = s._curr_force;
+    _break_force = s._break_force;
+    _broken = s._broken;
 }

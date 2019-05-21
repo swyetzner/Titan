@@ -75,6 +75,7 @@ public:
     }
 
     CUDA_DEVICE void atomicVecAdd(const Vec & v);
+    CUDA_DEVICE void atomicVecExch(const Vec &v);
 
     CUDA_CALLABLE_MEMBER Vec operator-() const{
         return Vec(-data[0], -data[1], -data[2]);
@@ -116,6 +117,11 @@ public:
 
     CUDA_CALLABLE_MEMBER friend bool operator==(const Vec & v1, const Vec & v2) {
         return (v1[0] == v2[0] && v1[1] == v2[1] && v1[2] == v2[2]);
+    }
+
+    CUDA_CALLABLE_MEMBER friend bool operator<(const Vec &v1, const Vec &v2) {
+        return ((v1[0] < v2[0]) || (v1[0] <= v2[0] && v1[1] < v2[1])
+                || (v1[0] <= v2[0] && v1[1] <= v2[1] && v1[2] < v2[2]));
     }
 
     CUDA_CALLABLE_MEMBER friend Vec operator*(const Vec & v1, const Vec & v2) {
