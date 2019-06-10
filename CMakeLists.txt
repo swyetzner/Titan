@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
+
 project(Titan LANGUAGES C CXX CUDA) # use CXX, CUDA by default (since CUDA is a language, don't need cuda_add_executable)
 
 set(CMAKE_CXX_STANDARD 14) # set C++ standard to C++11
@@ -100,11 +100,4 @@ if (TITAN_SHARED_BUILD)
     install(EXPORT TitanTargets
             FILE TitanConfig.cmake
             DESTINATION share/titan)
-else()
-    install(EXPORT TitanTargets
-            FILE TitanTargets.cmake
-            DESTINATION share/titan)
-
-    configure_file(cmake/TitanConfig.cmake.in2
-            ${CMAKE_INSTALL_PREFIX}/share/titan/TitanConfig.cmake @ONLY)
 endif()

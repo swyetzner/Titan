@@ -68,7 +68,6 @@ __global__ void createMassPointers(CUDA_MASS ** ptrs, CUDA_MASS * data, int size
 
 __global__ void computeSpringForces(CUDA_SPRING * device_springs, int num_springs, double t);
 __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL_CONSTRAINTS c, int num_masses);
-__global__ void massForcesNoTime(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL_CONSTRAINTS c, int num_masses);
 
 bool Simulation::RUNNING;
 bool Simulation::STARTED;
@@ -1281,7 +1280,13 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
         mass.vel = (mass.vel + mass.acc * mass.dt)*mass.damping;
         mass.pos = mass.pos + mass.vel * mass.dt;
 
+        if (mass.extduration < mass.T) {
+            // External force expires
+            mass.extforce = Vec(0, 0, 0);
+        }
         mass.force = mass.extforce;
+
+        mass.T += mass.dt;
     }
 }
 
