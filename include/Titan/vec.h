@@ -30,6 +30,9 @@
 
 class Vec {
 public:
+
+    double data[3] = { 0 }; // initialize data to 0
+
     CUDA_CALLABLE_MEMBER Vec() {
         data[0] = 0;
         data[1] = 0;
@@ -158,7 +161,6 @@ public:
     }
 
 private:
-    double data[3] = { 0 }; // initialize data to 0
 };
 
 CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b);
