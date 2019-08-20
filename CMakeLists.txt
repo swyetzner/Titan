@@ -61,25 +61,28 @@ else()
     endif()
 endif()
 
-find_package(glfw3 CONFIG REQUIRED)
-if (glfw3_FOUND)
-    message(STATUS "GLFW FOUND")
-    target_include_directories(Titan PRIVATE ${glfw3_INCLUDE_DIRS})
-    target_link_libraries(Titan PRIVATE ${glfw3_LIBRARIES})
-endif()
+option(USE_TitanGraphics "Use_TitanGraphics" OFF)
+if (USE_TitanGraphics)
+    find_package(glfw3 CONFIG REQUIRED)
+    if (glfw3_FOUND)
+        message(STATUS "GLFW FOUND")
+        target_include_directories(Titan PRIVATE ${glfw3_INCLUDE_DIRS})
+        target_link_libraries(Titan PRIVATE ${glfw3_LIBRARIES})
+    endif()
 
-find_package(GLEW REQUIRED) # GLEW
-if (GLEW_FOUND)
-    message(STATUS "GLEW FOUND")
-    target_include_directories(Titan PRIVATE ${GLEW_INCLUDE_DIRS})
-    target_link_libraries(Titan PRIVATE ${GLEW_LIBRARIES} glfw)
-endif()
+    find_package(GLEW REQUIRED) # GLEW
+    if (GLEW_FOUND)
+        message(STATUS "GLEW FOUND")
+        target_include_directories(Titan PRIVATE ${GLEW_INCLUDE_DIRS})
+        target_link_libraries(Titan PRIVATE ${GLEW_LIBRARIES} glfw)
+    endif()
 
-find_package(glm CONFIG REQUIRED) # glm
-if (glm_FOUND)
-    message(STATUS "GLM FOUND")
-    target_include_directories(Titan PRIVATE ${glm_INCLUDE_DIRS})
-    target_link_libraries(Titan PRIVATE ${glm_LIBRARIES} glm)
+    find_package(glm CONFIG REQUIRED) # glm
+    if (glm_FOUND)
+        message(STATUS "GLM FOUND")
+        target_include_directories(Titan PRIVATE ${glm_INCLUDE_DIRS})
+        target_link_libraries(Titan PRIVATE ${glm_LIBRARIES} glm)
+    endif()
 endif()
 
 target_include_directories(Titan PUBLIC

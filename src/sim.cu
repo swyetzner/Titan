@@ -312,7 +312,8 @@ Mass * Simulation::createMass(Mass * m) {
         gpuErrchk(cudaMalloc((void **) &d_mass, sizeof(CUDA_MASS)));
         m -> arrayptr = d_mass;
 
-        d_masses.push_back(d_mass);
+        d_masses.resize(masses.size());
+        d_masses[masses.size()-1] = d_mass;
 
         CUDA_MASS temp = CUDA_MASS(*m);
         gpuErrchk(cudaMemcpy(d_mass, &temp, sizeof(CUDA_MASS), cudaMemcpyHostToDevice));
@@ -384,7 +385,9 @@ Spring * Simulation::createSpring(Spring * s) {
         CUDA_SPRING * d_spring;
         gpuErrchk(cudaMalloc((void **) &d_spring, sizeof(CUDA_SPRING)));
         s -> arrayptr = d_spring;
-        d_springs.push_back(d_spring);
+
+        d_springs.resize(springs.size());
+        d_springs[springs.size() - 1] = d_spring;
 
         CUDA_SPRING temp = CUDA_SPRING(*s);
         gpuErrchk(cudaMemcpy(d_spring, &temp, sizeof(CUDA_SPRING), cudaMemcpyHostToDevice));
@@ -1199,15 +1202,6 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
         if (force.norm() > spring._break_force) spring._broken = true;
 
         spring._curr_force = (spring._rest > temp.norm())? force.norm() : -force.norm();
-
-        if (isnan(spring._left->force.norm())) {
-            spring._left->force.atomicVecExch(Vec(0., 0., 0.));
-            printf("left %lf %lf %lf", spring._left->force[0], spring._left->force[1], spring._left->force[2]);
-        }
-        if (isnan(spring._right->force.norm())) {
-            spring._right->force.atomicVecExch(Vec(0., 0., 0.));
-            printf("right %lf %lf %lf", spring._right->force[0], spring._right->force[1], spring._right->force[2]);
-        }
 
 #ifdef CONSTRAINTS
         if (spring._right -> constraints.fixed == false) {
