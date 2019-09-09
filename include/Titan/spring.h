@@ -19,6 +19,8 @@ const int ACTIVE_CONTRACT_THEN_EXPAND = 0;
 const int ACTIVE_EXPAND_THEN_CONTRACT = 1;
 const int PASSIVE_SOFT = 2;
 const int PASSIVE_STIFF = 3;
+const int ACTIVE_EXPAND_THEN_NEUTRAL = 4;
+const int ACTIVE_CONTRACT_THEN_NEUTRAL = 5;
 
 
 class Spring {
@@ -34,7 +36,9 @@ public:
     bool _broken; // true when spring is broken
 
     // BREATHING
-    int _type; // 0-3
+    int _type; // 0-5
+    double _period; // time period
+    double _offset; // time offset
     double _omega; // frequency
     
     Mass * _left = nullptr; // pointer to left mass object
@@ -42,7 +46,7 @@ public:
 
 
     //Set
-    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _omega=0.0; _max_stress = 0.0; }; //Constructor
+    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _period=1.0; _offset=0.0; _omega=0.0; _max_stress = 0.0; }; //Constructor
 
     Spring(const Spring &other);
 
@@ -119,6 +123,8 @@ struct CUDA_SPRING {
 
   // Breathing
   int _type;
+  double _period;
+  double _offset;
   double _omega;
 };
 

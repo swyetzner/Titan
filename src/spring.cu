@@ -85,6 +85,8 @@ void Spring::operator=(CUDA_SPRING & spring) {
     _rest = spring._rest;
     _diam = spring._diam;
     _type = spring._type;
+    _period = spring._period;
+    _offset = spring._offset;
     _omega = spring._omega;
     _max_stress = spring._max_stress;
     _curr_force = spring._curr_force;
@@ -101,6 +103,8 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s) {
     _rest = s._rest;
     _diam = s._diam;
     _type = s._type;
+    _period = s._period;
+    _offset = s._offset;
     _omega = s._omega;
     _max_stress = s._max_stress;
     _curr_force = s._curr_force;
@@ -115,6 +119,8 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right) 
     _rest = s._rest;
     _diam = s._diam;
     _type = s._type;
+    _period = s._period;
+    _offset = s._offset;
     _omega = s._omega;
     _max_stress = s._max_stress;
     _curr_force = s._curr_force;

@@ -1188,20 +1188,43 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
 
         Vec temp = (spring._right -> pos) - (spring._left -> pos);
         //	printf("%d, %f, %f\n",spring._type, spring._omega,t);
-        //double scale=1.0;
-        //if (spring._type == ACTIVE_CONTRACT_THEN_EXPAND){
-        //  scale = (1 - 0.2*sin(spring._omega * t));
-        //}else if (spring._type == ACTIVE_EXPAND_THEN_CONTRACT){
-        //  scale = (1 + 0.2*sin(spring._omega * t));
-        //}
-
-        Vec force = spring._k * (spring._rest - temp.norm()) * (temp / temp.norm());
+        double scale=1.0;
+        double pi = atan(1.0) * 4;
+        double cyclePoint;
+        switch (spring._type) {
+            case ACTIVE_CONTRACT_THEN_EXPAND:
+                cyclePoint = fmod(t - spring._offset, spring._period);
+                if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
+                    scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
+                } break;
+            case ACTIVE_EXPAND_THEN_CONTRACT:
+                cyclePoint = fmod(t - spring._offset, spring._period);
+                if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
+                    scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
+                } break;
+            case ACTIVE_CONTRACT_THEN_NEUTRAL:
+                cyclePoint = fmod(t - spring._offset, spring._period);
+                if (cyclePoint < pi / spring._omega && t >= spring._offset) {
+                    scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
+                } break;
+            case ACTIVE_EXPAND_THEN_NEUTRAL:
+                cyclePoint = fmod(t - spring._offset, spring._period);
+                if (cyclePoint < pi / spring._omega && t >= spring._offset) {
+                    scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
+                } break;
+            default: break;
+        }
+        double tempNorm = temp.norm();
+        if (tempNorm == 0) {
+            tempNorm = 1E-6;
+        }
+        Vec force = spring._k * (scale * spring._rest - tempNorm) * (temp / tempNorm);
 
         if (force.norm() > spring._max_stress) spring._max_stress = force.norm();
 
         if (force.norm() > spring._break_force) spring._broken = true;
 
-        spring._curr_force = (spring._rest > temp.norm())? force.norm() : -force.norm();
+        spring._curr_force = (scale * spring._rest > tempNorm)? force.norm() : -force.norm();
 
 #ifdef CONSTRAINTS
         if (spring._right -> constraints.fixed == false) {
