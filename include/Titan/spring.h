@@ -40,28 +40,29 @@ public:
     double _period; // time period
     double _offset; // time offset
     double _omega; // frequency
+    double _actuation; // actuation amount (normalized)
     
     Mass * _left = nullptr; // pointer to left mass object
     Mass * _right = nullptr; // pointer to right mass object
 
 
     //Set
-    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _period=1.0; _offset=0.0; _omega=0.0; _max_stress = 0.0; }; //Constructor
+    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _period=1.0; _offset=0.0; _omega=0.0; _actuation=0.0; _max_stress = 0.0; }; //Constructor
 
     Spring(const Spring &other);
 
     Spring(const CUDA_SPRING & spr);
 
     Spring(Mass * left, Mass * right, double k = 10000.0, double rest_len = 1.0, double diam = 0.001):
-            _k(k), _rest(rest_len), _diam(diam), _left(left), _right(right), arrayptr(nullptr), _break_force(10), _curr_force(0), _max_stress(0), _broken(false)
+            _k(k), _rest(rest_len), _diam(diam), _left(left), _right(right), arrayptr(nullptr), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0)
     {}
 
     Spring(double k, double rest_length, Mass * left, Mass * right) :
-            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right),_break_force(10), _curr_force(0), _max_stress(0), _broken(false)
+            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right),_break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0)
     {}
 
     Spring(double k, double rest_length, Mass * left, Mass * right, int type, double omega) :
-            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right), _type(type), _omega(omega), _break_force(10), _curr_force(0), _max_stress(0), _broken(false)
+            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right), _type(type), _omega(omega), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0)
     {}
 	    
     void setForce(); // will be private
@@ -126,6 +127,7 @@ struct CUDA_SPRING {
   double _period;
   double _offset;
   double _omega;
+  double _actuation;
 };
 
 #endif //TITAN_SPRING_H

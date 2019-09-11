@@ -18,6 +18,7 @@
 #include <cuda_device_runtime_api.h>
 #include <cuda_gl_interop.h>
 #include <exception>
+#include <device_launch_parameters.h>
 
 #ifdef GRAPHICS
 #ifndef SDL2
@@ -1191,26 +1192,31 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
         double scale=1.0;
         double pi = atan(1.0) * 4;
         double cyclePoint;
+        spring._actuation = 0.0;
         switch (spring._type) {
             case ACTIVE_CONTRACT_THEN_EXPAND:
                 cyclePoint = fmod(t - spring._offset, spring._period);
                 if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
                     scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
+                    spring._actuation = sin(spring._omega * cyclePoint);
                 } break;
             case ACTIVE_EXPAND_THEN_CONTRACT:
                 cyclePoint = fmod(t - spring._offset, spring._period);
                 if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
                     scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
+                    spring._actuation = sin(spring._omega * cyclePoint);
                 } break;
             case ACTIVE_CONTRACT_THEN_NEUTRAL:
                 cyclePoint = fmod(t - spring._offset, spring._period);
                 if (cyclePoint < pi / spring._omega && t >= spring._offset) {
                     scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
+                    spring._actuation = sin(spring._omega * cyclePoint);
                 } break;
             case ACTIVE_EXPAND_THEN_NEUTRAL:
                 cyclePoint = fmod(t - spring._offset, spring._period);
                 if (cyclePoint < pi / spring._omega && t >= spring._offset) {
                     scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
+                    spring._actuation = sin(spring._omega * cyclePoint);
                 } break;
             default: break;
         }

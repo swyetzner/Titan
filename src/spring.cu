@@ -43,6 +43,7 @@ Spring::Spring(const Spring &other) {
     _broken = other._broken;
     _left = nullptr;
     _right = nullptr;
+    _actuation = 0.0;
 }
 
 Spring::Spring(const CUDA_SPRING & spr) {
@@ -53,6 +54,7 @@ Spring::Spring(const CUDA_SPRING & spr) {
     this -> _curr_force = spr._curr_force;
     this -> _max_stress = spr._max_stress;
     this -> _broken = spr._broken;
+    this -> _actuation = spr._actuation;
 }
 
 void Spring::defaultLength() { _rest = (_left -> pos - _right -> pos).norm() ; } //sets Rest Lenght
@@ -88,6 +90,7 @@ void Spring::operator=(CUDA_SPRING & spring) {
     _period = spring._period;
     _offset = spring._offset;
     _omega = spring._omega;
+    _actuation = spring._actuation;
     _max_stress = spring._max_stress;
     _curr_force = spring._curr_force;
     _break_force = spring._break_force;
@@ -106,6 +109,7 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s) {
     _period = s._period;
     _offset = s._offset;
     _omega = s._omega;
+    _actuation = s._actuation;
     _max_stress = s._max_stress;
     _curr_force = s._curr_force;
     _break_force = s._break_force;
@@ -122,6 +126,7 @@ CUDA_SPRING::CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right) 
     _period = s._period;
     _offset = s._offset;
     _omega = s._omega;
+    _actuation = s._actuation;
     _max_stress = s._max_stress;
     _curr_force = s._curr_force;
     _break_force = s._break_force;
