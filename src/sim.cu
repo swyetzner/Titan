@@ -489,10 +489,8 @@ void Simulation::deleteSpring(Spring * s) {
         if (s -> _right) { s -> _right -> decrementRefCount(); }
 
         // Update masses
-        if (s -> _left -> ref_count > 0)
-            s -> _left -> m -= s -> _left -> m / s -> _left -> ref_count;
-        if (s -> _right -> ref_count > 0)
-            s -> _right -> m -= s -> _right -> m / s -> _right -> ref_count;
+        s -> _left -> m -= s -> _mass / 2;
+        s -> _right -> m -= s-> _mass / 2;
 
         delete s;
 

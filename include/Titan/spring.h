@@ -34,6 +34,7 @@ public:
     double _curr_force; // stateful force (N)
     double _max_stress; // maximum stress exerienced
     bool _broken; // true when spring is broken
+    double _mass; // Contributing mass (only used to update Mass objects)
 
     // BREATHING
     int _type; // 0-5
@@ -121,8 +122,9 @@ struct CUDA_SPRING {
   double _curr_force; // stateful force (N)
   double _max_stress; // maximum stress exerienced
   double _broken; // true when spring is broken
+  double _mass; // Contributing mass (only used to update Mass objects)
 
-  // Breathing
+    // Breathing
   int _type;
   double _period;
   double _offset;
