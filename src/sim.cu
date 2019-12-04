@@ -1213,6 +1213,9 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
     if ( i < num_springs ) {
         CUDA_SPRING & spring = *d_spring[i];
 
+        if (!spring._compute)
+            return;
+
         if (spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid) // TODO might be expensive with CUDA instruction set
             return;
 

@@ -65,6 +65,8 @@ public:
     bool valid; // false if mass has been deleted from arrays
 
 
+    Mass();
+
     Mass(const Mass &other);
     Mass(const Vec & position, double mass = 0.1, bool fixed = false, double dt = 0.0001);
 #ifdef CONSTRAINTS
@@ -89,7 +91,6 @@ private:
 
     CUDA_MASS * arrayptr; //Pointer to struct version for GPU cudaMemAlloc
 
-    Mass();
     void operator=(CUDA_MASS & mass);
 
     friend class Simulation;

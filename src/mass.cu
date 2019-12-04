@@ -53,7 +53,7 @@ void Mass::operator=(CUDA_MASS & mass) {
 Mass::Mass(const Mass &other) {
     m = other.m;
     pos = other.pos;
-    origpos = other.pos;
+    origpos = other.origpos;
     dt = other.dt;
     vel = other.vel;
     acc = other.acc;
