@@ -14,6 +14,7 @@ Mass::Mass() {
     extforce = Vec(0., 0., 0.);
     maxforce = Vec(0, 0, 0);
     T = 0;
+    density = 1.0;
     valid = true;
     arrayptr = nullptr;
     ref_count = 0;
@@ -61,6 +62,7 @@ Mass::Mass(const Mass &other) {
     force = other.force;
     index = other.index;
     T = other.T;
+    density = other.density;
     damping = other.damping;
     extduration = other.extduration;
     extforce = other.extforce;
@@ -83,6 +85,7 @@ Mass::Mass(const Vec & position, double mass, bool fixed, double dt) {
 
     T = 0;
     damping = 1.0;
+    density = 1.0;
     force = Vec(0., 0., 0.);
     extduration = 0;
     extforce = Vec(0., 0., 0.);

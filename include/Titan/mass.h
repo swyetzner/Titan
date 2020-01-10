@@ -51,6 +51,7 @@ public:
     double T; // local time
     double damping; // damping mass velocity
     double extduration; // duration of external force
+    double density; // density of material
     Vec pos; // position in m
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2

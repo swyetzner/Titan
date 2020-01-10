@@ -441,9 +441,8 @@ void Simulation::deleteMass(Mass * m) {
             exit(1);
         }
 
-        updateCudaParameters();
-        invalidate<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, m -> arrayptr, masses.size());
         m -> valid = false;
+        gpuErrchk(cudaFree(m -> arrayptr));
 
 
         thrust::remove(thrust::device, d_masses.begin(), d_masses.begin() + masses.size(), m -> arrayptr);
@@ -451,7 +450,7 @@ void Simulation::deleteMass(Mass * m) {
 
         d_masses.resize(masses.size());
 
-        m -> decrementRefCount();
+        delete m;
 
 #ifdef GRAPHICS
         resize_buffers = true;
@@ -489,8 +488,19 @@ void Simulation::deleteSpring(Spring * s) {
         if (s -> _right) { s -> _right -> decrementRefCount(); }
 
         // Update masses
-        s -> _left -> m -= s -> _mass / 2;
-        s -> _right -> m -= s-> _mass / 2;
+        if (s -> _left -> density > 0 && s -> _right -> density > 0) {
+            double d = 0.5 * (s->_left->density + s->_right->density);
+            double v = M_PI * s->_diam/2 * s->_diam/2 * s->_rest;
+            double m = d * v;
+
+            s->_left->m -= m/2;
+            s->_right->m -= m/2;
+
+        }
+        /**if (s -> _left -> ref_count > 0)
+            s -> _left -> m -= s -> _left -> m / s -> _left -> ref_count;
+        if (s -> _right -> ref_count > 0)
+            s -> _right -> m -= s -> _right -> m / s -> _right -> ref_count;**/
 
         delete s;
 
