@@ -34,7 +34,7 @@ public:
     double _curr_force; // stateful force (N)
     double _max_stress; // maximum stress exerienced
     bool _broken; // true when spring is broken
-    double _mass; // Contributing mass (only used to update Mass objects)
+    bool _compute; // almost always true, ignored by kernel when off
 
     // BREATHING
     int _type; // 0-5
@@ -48,22 +48,22 @@ public:
 
 
     //Set
-    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _period=1.0; _offset=0.0; _omega=0.0; _actuation=0.0; _max_stress = 0.0; }; //Constructor
+    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _period=1.0; _offset=0.0; _omega=0.0; _actuation=0.0; _max_stress = 0.0; _compute=true; }; //Constructor
 
     Spring(const Spring &other);
 
     Spring(const CUDA_SPRING & spr);
 
     Spring(Mass * left, Mass * right, double k = 10000.0, double rest_len = 1.0, double diam = 0.001):
-            _k(k), _rest(rest_len), _diam(diam), _left(left), _right(right), arrayptr(nullptr), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0)
+            _k(k), _rest(rest_len), _diam(diam), _left(left), _right(right), arrayptr(nullptr), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0), _compute(true)
     {}
 
     Spring(double k, double rest_length, Mass * left, Mass * right) :
-            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right),_break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0)
+            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right),_break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0), _compute(true)
     {}
 
     Spring(double k, double rest_length, Mass * left, Mass * right, int type, double omega) :
-            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right), _type(type), _omega(omega), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0)
+            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right), _type(type), _omega(omega), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0), _compute(true)
     {}
 	    
     void setForce(); // will be private
@@ -121,8 +121,8 @@ struct CUDA_SPRING {
   double _break_force; // spring breakage point (N)
   double _curr_force; // stateful force (N)
   double _max_stress; // maximum stress exerienced
-  double _broken; // true when spring is broken
-  double _mass; // Contributing mass (only used to update Mass objects)
+  bool _broken; // true when spring is broken
+  bool _compute; // almost always true, ignored by kernel when off
 
     // Breathing
   int _type;

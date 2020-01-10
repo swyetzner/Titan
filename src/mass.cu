@@ -4,7 +4,6 @@
 #define GLM_FORCE_PURE
 #include "mass.h"
 
-
 Mass::Mass() {
     m = 1.0;
     dt = 0.0001;
@@ -55,7 +54,7 @@ void Mass::operator=(CUDA_MASS & mass) {
 Mass::Mass(const Mass &other) {
     m = other.m;
     pos = other.pos;
-    origpos = other.pos;
+    origpos = other.origpos;
     dt = other.dt;
     vel = other.vel;
     acc = other.acc;
