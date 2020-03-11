@@ -46,8 +46,10 @@ public:
 
 #ifdef GRAPHICS
     bool _initialized;
+    virtual void loadShaders() = 0;
     virtual void generateBuffers() = 0;
     virtual void draw() = 0;
+    GLuint shaderProgram;
 #endif
 };
 
@@ -71,6 +73,7 @@ struct Ball : public Constraint {
         glDeleteBuffers(1, &colors);
     }
 
+    void loadShaders();
     void generateBuffers();
     void draw();
 
@@ -120,7 +123,7 @@ struct ContactPlane : public Constraint {
         glDeleteBuffers(1, &vertices);
         glDeleteBuffers(1, &colors);
     }
-
+    void loadShaders();
     void generateBuffers();
     void draw();
 

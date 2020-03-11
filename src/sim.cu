@@ -1136,6 +1136,11 @@ void Simulation::clearScreen() {
 
     // Send our transformation to the currently bound shader in the "MVP" uniform
     glUniformMatrix4fv(MatrixID, 1, GL_FALSE, &MVP[0][0]);
+
+    for (auto c : constraints) {
+        glUseProgram(c->shaderProgram);
+        glUniformMatrix4fv(glGetUniformLocation(c->shaderProgram, "MVP"), 1, GL_FALSE, &MVP[0][0]);
+    }
 }
 
 void Simulation::renderScreen() {
@@ -1371,17 +1376,21 @@ void Simulation::_run() { // repeatedly start next
 //    glEnable(GL_LIGHT0);
 
     // Create and compile our GLSL program from the shaders
-    this -> programID = LoadShaders(); // ("shaders/StandardShading.vertexshader", "shaders/StandardShading.fragmentshader"); //
+    this -> programID = LoadShaders(VertexShaderCode.c_str(), FragmentShaderCode.c_str()); // ("shaders/StandardShading.vertexshader", "shaders/StandardShading.fragmentshader"); //
     // Get a handle for our "MVP" uniform
 
     this -> MVP = getProjection(camera, looks_at, up); // compute perspective projection matrix
 
     this -> MatrixID = glGetUniformLocation(programID, "MVP"); // doesn't seem to be necessary
+    printf("Main Program: %d\n", this->programID);
+
 
     generateBuffers(); // generate buffers for all masses and springs
 
     for (Constraint * c : constraints) { // generate buffers for constraint objects
+        c -> loadShaders();
         c -> generateBuffers();
+        glUniformMatrix4fv(glGetUniformLocation(c->shaderProgram, "MVP"), 1, GL_FALSE, &MVP[0][0]);
     }
 
 #endif
@@ -1503,12 +1512,14 @@ void Simulation::execute() {
             }
 
 #ifdef CONSTRAINTS
+#ifdef GRAPHICS
             if (resize_buffers) {
                 resizeBuffers(); // needs to be run from GPU thread
                 resize_buffers = false;
                 update_colors = true;
                 update_indices = true;
             }
+#endif
 
             if (update_constraints) {
                 d_constraints.d_balls = thrust::raw_pointer_cast(&d_balls[0]);
@@ -1517,8 +1528,10 @@ void Simulation::execute() {
                 d_constraints.num_planes = d_planes.size();
 
                 for (Constraint * c : constraints) { // generate buffers for constraint objects
+#ifdef GRAPHICS
                     if (! c -> _initialized)
                         c -> generateBuffers();
+#endif
                 }
 
                 update_constraints = false;
@@ -1744,6 +1757,8 @@ void Simulation::updateBuffers() {
 }
 
 void Simulation::draw() {
+    glUseProgram(this->programID);
+
     glEnableVertexAttribArray(0);
 
     glBindBuffer(GL_ARRAY_BUFFER, this -> vertices);

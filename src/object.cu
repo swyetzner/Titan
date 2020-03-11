@@ -611,6 +611,9 @@ void Ball::subdivide(GLfloat * arr, GLfloat *v1, GLfloat *v2, GLfloat *v3, int d
     subdivide(arr, v12, v23, v31, depth - 1);
 }
 
+void Ball::loadShaders() {
+    this->shaderProgram = 0;
+}
 
 void Ball::generateBuffers() {
     glm::vec3 color = {0.22f, 0.71f, 0.0f};
@@ -692,6 +695,10 @@ void Ball::draw() {
 
 #ifdef GRAPHICS
 
+void ContactPlane::loadShaders() {
+    this -> shaderProgram = LoadShaders(PlaneVertexShaderCode.c_str(), PlaneFragmentShaderCode.c_str());
+}
+
 void ContactPlane::generateBuffers() {
     glm::vec3 color = {0.22f, 0.71f, 0.0f};
     Vec temp = (dot(_normal, Vec(0, 1, 0)) < 0.8) ? Vec(0, 1, 0) : Vec(1, 0, 0);
@@ -772,6 +779,8 @@ void ContactPlane::generateBuffers() {
 }
 
 void ContactPlane::draw() {
+    glUseProgram(shaderProgram);
+
     // 1st attribute buffer : vertices
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vertices);
