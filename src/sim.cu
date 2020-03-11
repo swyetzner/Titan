@@ -1382,7 +1382,6 @@ void Simulation::_run() { // repeatedly start next
     this -> MVP = getProjection(camera, looks_at, up); // compute perspective projection matrix
 
     this -> MatrixID = glGetUniformLocation(programID, "MVP"); // doesn't seem to be necessary
-    printf("Main Program: %d\n", this->programID);
 
 
     generateBuffers(); // generate buffers for all masses and springs

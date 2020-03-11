@@ -46,7 +46,6 @@ GLuint LoadShaders(const char *vertexShaderSource, const char *fragmentShaderSou
     int InfoLogLength;
 
     // Link the program
-    printf("Linking program\n");
     GLuint ProgramID = glCreateProgram();
     glAttachShader(ProgramID, VertexShaderID);
     glAttachShader(ProgramID, FragmentShaderID);
