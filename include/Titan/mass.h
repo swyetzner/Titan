@@ -8,9 +8,6 @@
 #include "vec.h"
 #include "object.h"
 
-#include <algorithm>
-using namespace  std;
-
 class Mass;
 struct CUDA_MASS;
 
@@ -22,14 +19,10 @@ struct CUDA_MASS {
     double m; // mass in kg
     double dt; // update interval
     double T; // local time
-    double damping;
-    double extduration; // duration of external force
     Vec pos; // position in m
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2
     Vec force; // force in kg m / s^2
-    Vec extforce; // external force in kg m / s^2
-    Vec maxforce; // max force by magnitude since simulation start in kg m / s^2
 
 #ifdef GRAPHICS
     Vec color;
@@ -49,30 +42,13 @@ public:
     double m; // mass in kg
     double dt; // update interval
     double T; // local time
-    double damping; // damping mass velocity
-    double extduration; // duration of external force
-    double density; // density of material
     Vec pos; // position in m
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2
     Vec force; // force in kg m / s^2
-    Vec extforce; // external force in kg m / s^2
-    Vec maxforce; // max force by magnitude since simulation start in kg m / s^2
-    Vec origpos; // original position in m
-    int index; // index in masses array
-    int ref_count; // reference count
-    int spring_count; // number of attached springs
 
-    bool valid; // false if mass has been deleted from arrays
-
-
-    Mass();
-
-    Mass(const Mass &other);
     Mass(const Vec & position, double mass = 0.1, bool fixed = false, double dt = 0.0001);
 #ifdef CONSTRAINTS
-    LOCAL_CONSTRAINTS constraints;
-
     void addConstraint(CONSTRAINT_TYPE type, const Vec & vec, double num);
     void clearConstraints(CONSTRAINT_TYPE type);
     void clearConstraints();
@@ -87,11 +63,14 @@ public:
 #endif
 
 private:
+    bool valid;
+    int ref_count;
 
     void decrementRefCount();
 
     CUDA_MASS * arrayptr; //Pointer to struct version for GPU cudaMemAlloc
 
+    Mass();
     void operator=(CUDA_MASS & mass);
 
     friend class Simulation;
@@ -103,6 +82,10 @@ private:
     friend class Beam;
     friend class Cube;
 
+#ifdef CONSTRAINTS
+    LOCAL_CONSTRAINTS constraints;
+
+#endif
 
 };
 

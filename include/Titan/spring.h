@@ -8,95 +8,78 @@
 #include "mass.h"
 #include "vec.h"
 
-#include <algorithm>
-
 class Mass;
 struct CUDA_SPRING;
 struct CUDA_MASS;
 
-//Struct with CPU Spring properties used for optimal memory allocation on GPU memory
-const int ACTIVE_CONTRACT_THEN_EXPAND = 0;
-const int ACTIVE_EXPAND_THEN_CONTRACT = 1;
-const int PASSIVE_SOFT = 2;
-const int PASSIVE_STIFF = 3;
-const int ACTIVE_EXPAND_THEN_NEUTRAL = 4;
-const int ACTIVE_CONTRACT_THEN_NEUTRAL = 5;
-
+enum SpringType {PASSIVE_SOFT, PASSIVE_STIFF, ACTIVE_CONTRACT_THEN_EXPAND, ACTIVE_EXPAND_THEN_CONTRACT};
 
 class Spring {
 public:
-
-    //Properties
     double _k; // spring constant (N/m)
     double _rest; // spring rest length (meters)
-    double _diam; // spring diameter (meters)
-    double _break_force; // spring breakage point (N)
-    double _curr_force; // stateful force (N)
-    double _max_stress; // maximum stress exerienced
-    bool _broken; // true when spring is broken
-    bool _compute; // almost always true, ignored by kernel when off
 
-    // BREATHING
-    int _type; // 0-5
-    double _period; // time period
-    double _offset; // time offset
-    double _omega; // frequency
-    double _actuation; // actuation amount (normalized)
+    SpringType _type; // 0-3, for oscillating springs
+    double _omega; // frequency of oscillation
+    double _damping; // damping on the masses.
+
+    Mass * _left; // pointer to left mass object // private
+    Mass * _right; // pointer to right mass object
+
+    Spring() { 
+        _left = nullptr; 
+        _right = nullptr; 
+        arrayptr = nullptr; 
+        _k = 10000.0; 
+        _rest = 1.0; 
+        _type = PASSIVE_SOFT; 
+        _omega = 0.0; 
+        _damping = 0.0;
+    };
     
-    Mass * _left = nullptr; // pointer to left mass object
-    Mass * _right = nullptr; // pointer to right mass object
+    // Spring(const CUDA_SPRING & spr);
 
+    Spring(Mass * left, Mass * right) {
+        this -> _left = left;
+        this -> _right = right;
+        this -> defaultLength();
+        this -> _k = 10000.0;
+        this -> arrayptr = nullptr;
+        _type = PASSIVE_SOFT;
+        _omega = 0.0; 
+        _damping = 0.0;
+    };
 
-    //Set
-    Spring() { _left = nullptr; _right = nullptr; arrayptr = nullptr; _k = 10000.0; _rest = 1.0; _diam = 0.001;_break_force = 10; _broken = false; _type=PASSIVE_STIFF; _period=1.0; _offset=0.0; _omega=0.0; _actuation=0.0; _max_stress = 0.0; _compute=true; }; //Constructor
+    Spring(Mass * left, Mass * right, double k, double rest_length) {
+        this -> _left = left;
+        this -> _right = right;
+        this -> _rest = rest_length;
+        this -> _k = k;
+        _type = PASSIVE_SOFT;
+        _omega = 0.0; 
+        _damping = 0.0;
+    }
 
-    Spring(const Spring &other);
+    void update(const CUDA_SPRING & spr);
 
-    Spring(const CUDA_SPRING & spr);
-
-    Spring(Mass * left, Mass * right, double k = 10000.0, double rest_len = 1.0, double diam = 0.001):
-            _k(k), _rest(rest_len), _diam(diam), _left(left), _right(right), arrayptr(nullptr), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0), _compute(true)
-    {}
-
-    Spring(double k, double rest_length, Mass * left, Mass * right) :
-            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right),_break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0), _compute(true)
-    {}
-
-    Spring(double k, double rest_length, Mass * left, Mass * right, int type, double omega) :
-            _k(k), _rest(rest_length), _diam(0.001), _left(left), _right(right), _type(type), _omega(omega), _break_force(10), _curr_force(0), _max_stress(0), _broken(false), _actuation(0.0), _compute(true)
-    {}
+    Spring(Mass * left, Mass * right, double k, double rest_length, SpringType type, double omega) :
+            _k(k), _rest(rest_length), _left(left), _right(right), _type(type), _omega(omega) {};
 	    
     void setForce(); // will be private
     void setRestLength(double rest_length) { _rest = rest_length; } //sets Rest length
     void defaultLength(); //sets rest length
+    void changeType(SpringType type, double omega) { _type = type; _omega = omega;}
+    void addDamping(double constant) { _damping = constant; }
 
     void setLeft(Mass * left); // sets left mass (attaches spring to mass 1)
     void setRight(Mass * right);
 
-    void setMasses(Mass * left, Mass * right) {
-        if (_left != nullptr) {
-            _left->ref_count--;
-        }
-        if (_right != nullptr) {
-            _right->ref_count--;
-        }
+    void setMasses(Mass * left, Mass * right) { _left = left; _right = right; } //sets both right and left masses
 
-        _left = left;
-        _right = right;
-
-    } //sets both right and left masses
-
-    //Get
     Vec getForce(); // computes force on right object. left force is - right force.
-    int getLeft();
-    int getRight();
 
 private:
-    //    Mass * _left; // pointer to left mass object // private
-    //    Mass * _right; // pointer to right mass object
     CUDA_SPRING *arrayptr; //Pointer to struct version for GPU cudaMalloc
-
-    void operator=(CUDA_SPRING & spring);
 
     friend class Simulation;
     friend struct CUDA_SPRING;
@@ -107,7 +90,7 @@ private:
 };
 
 struct CUDA_SPRING {
-  CUDA_SPRING() : _max_stress(0) {}
+  CUDA_SPRING() {};
   CUDA_SPRING(const Spring & s);
   
   CUDA_SPRING(const Spring & s, CUDA_MASS * left, CUDA_MASS * right);
@@ -117,19 +100,11 @@ struct CUDA_SPRING {
   
   double _k; // spring constant (N/m)
   double _rest; // spring rest length (meters)
-  double _diam; // spring diameter (meters)
-  double _break_force; // spring breakage point (N)
-  double _curr_force; // stateful force (N)
-  double _max_stress; // maximum stress exerienced
-  bool _broken; // true when spring is broken
-  bool _compute; // almost always true, ignored by kernel when off
 
-    // Breathing
-  int _type;
-  double _period;
-  double _offset;
+  // Breathing
+  SpringType _type;
   double _omega;
-  double _actuation;
+  double _damping;
 };
 
 #endif //TITAN_SPRING_H

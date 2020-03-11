@@ -18,7 +18,6 @@
 #include <cuda_device_runtime_api.h>
 #include <cuda_gl_interop.h>
 #include <exception>
-#include <device_launch_parameters.h>
 
 #ifdef GRAPHICS
 #ifndef SDL2
@@ -26,48 +25,11 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 #endif
 #endif
 
-#if __CUDA_ARCH__ < 600
-__device__ double atomicDAdd(double* address, double val)
-{
-    unsigned long long int* address_as_ull =
-            (unsigned long long int*)address;
-    unsigned long long int old = *address_as_ull, assumed;
-
-    do {
-        assumed = old;
-        old = atomicCAS(address_as_ull, assumed,
-                        __double_as_longlong(val +
-                                             __longlong_as_double(assumed)));
-
-        // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
-    } while (assumed != old);
-
-    return __longlong_as_double(old);
-}
-
-__device__ double atomicDMin(double *address, double val)
-{
-    unsigned long long int* address_as_ull =
-            (unsigned long long int*)address;
-    unsigned long long int old = *address_as_ull, assumed;
-
-    do {
-        assumed = old;
-        old = atomicCAS(address_as_ull, assumed,
-                        __double_as_longlong((val < __longlong_as_double(assumed)?
-                        val : __longlong_as_double(assumed))));
-
-        // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
-    } while (assumed != old);
-
-    return __longlong_as_double(old);
-}
-#endif
 
 __global__ void createSpringPointers(CUDA_SPRING ** ptrs, CUDA_SPRING * data, int size);
 __global__ void createMassPointers(CUDA_MASS ** ptrs, CUDA_MASS * data, int size);
 
-__global__ void computeSpringForces(CUDA_SPRING * device_springs, int num_springs, double t);
+__global__ void computeSpringForces(CUDA_SPRING ** device_springs, int num_springs, double t);
 __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL_CONSTRAINTS c, int num_masses);
 
 bool Simulation::RUNNING;
@@ -107,7 +69,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=f
             snprintf(buffer, sizeof(buffer), "GPUassert error in CUDA kernel: %s %s %d\n", cudaGetErrorString(code), file, line);
             std::string buffer_string = buffer;
             throw std::runtime_error(buffer_string);
-            exit(code);
         }
     }
 }
@@ -136,78 +97,6 @@ Simulation::Simulation() {
     up = Vec(0, 0, 1);
 #endif
 }
-
-// Sets CPU data to the data in src parameter
-void Simulation::cpuSnapshot(const Simulation &src) {
-    this->dt = src.dt;
-    this->T = src.T;
-
-    this->masses = src.masses;
-    this->springs = src.springs;
-}
-
-// Loads CPU data from the src parameter
-// And updates related GPU properties
-void Simulation::copy(const Simulation &src) {
-    this->dt = src.dt;
-    this->T = src.T;
-    this->masses = vector<Mass *>();
-    this->springs = vector<Spring *>();
-    this->constraints = vector<Constraint *>();
-    this->STARTED = false;
-
-    for (Mass *m : src.masses) {
-        this->masses.push_back(new Mass(*m));
-    }
-    for (Spring *s : src.springs) {
-        this->springs.push_back(new Spring(*s));
-    }
-    for (Constraint *c : src.constraints) {
-        Constraint tmp = *c;
-        this->constraints.push_back(&tmp);
-    }
-
-    // Connect springs to masses
-    for (int i = 0; i < springs.size(); i++) {
-        for (int j = 0; j < masses.size(); j++) {
-            if (src.springs[i]->_left == src.masses[j]) {
-                springs[i]->_left = masses[j];
-            }
-            if (src.springs[i]->_right == src.masses[j]) {
-                springs[i]->_right = masses[j];
-            }
-        }
-    }
-}
-
-// Adds CPU data from the src parameter
-// And updates related GPU properties
-void Simulation::append(const Simulation &src) {
-    this->dt = src.dt;
-    this->T = src.T;
-    int n_springs = this->springs.size();
-    int n_masses = this->masses.size();
-
-    for (Mass *m : src.masses) {
-        this->masses.push_back(new Mass(*m));
-    }
-    for (Spring *s : src.springs) {
-        this->springs.push_back(new Spring(*s));
-    }
-
-    // Connect springs to masses
-    for (int i = n_springs; i < springs.size(); i++) {
-        for (int j = n_masses; j < masses.size(); j++) {
-            if (src.springs[i - n_springs]->_left == src.masses[j - n_masses]) {
-                springs[i]->_left = masses[j];
-            }
-            if (src.springs[i - n_springs]->_right == src.masses[j - n_masses]) {
-                springs[i]->_right = masses[j];
-            }
-        }
-    }
-}
-
 
 void Simulation::reset() {
     this -> masses.clear();
@@ -298,7 +187,7 @@ Simulation::~Simulation() {
             gpu_thread.join();
         } else {
             std::cout << "could not join GPU thread." << std::endl;
-            //exit(1);
+            exit(1);
         }
 
         if (!FREED) {
@@ -326,7 +215,6 @@ Mass * Simulation::createMass(Mass * m) {
     }
 
     m -> ref_count++;
-    m -> index = masses.size();
 
     if (!STARTED) {
         masses.push_back(m);
@@ -342,8 +230,7 @@ Mass * Simulation::createMass(Mass * m) {
         gpuErrchk(cudaMalloc((void **) &d_mass, sizeof(CUDA_MASS)));
         m -> arrayptr = d_mass;
 
-        d_masses.resize(masses.size());
-        d_masses[masses.size()-1] = d_mass;
+        d_masses.push_back(d_mass);
 
         CUDA_MASS temp = CUDA_MASS(*m);
         gpuErrchk(cudaMemcpy(d_mass, &temp, sizeof(CUDA_MASS), cudaMemcpyHostToDevice));
@@ -395,14 +282,8 @@ Spring * Simulation::createSpring(Spring * s) {
         throw std::runtime_error("The simulation has ended. Cannot modify simulation after the end of the simulation.");
     }
 
-    if (s -> _right) {
-        s -> _right -> ref_count++;
-        s -> _right -> spring_count++;
-    }
-    if (s -> _left) {
-        s -> _left -> ref_count++;
-        s -> _left -> spring_count++;
-    }
+    if (s -> _right) { s -> _right -> ref_count++; }
+    if (s -> _left) { s -> _left -> ref_count++; }
 
     if (!STARTED) {
         springs.push_back(s);
@@ -411,13 +292,13 @@ Spring * Simulation::createSpring(Spring * s) {
         if (RUNNING) {
             exit(1);
         }
+
         springs.push_back(s);
+
         CUDA_SPRING * d_spring;
         gpuErrchk(cudaMalloc((void **) &d_spring, sizeof(CUDA_SPRING)));
         s -> arrayptr = d_spring;
-
-        d_springs.resize(springs.size());
-        d_springs[springs.size() - 1] = d_spring;
+        d_springs.push_back(d_spring);
 
         CUDA_SPRING temp = CUDA_SPRING(*s);
         gpuErrchk(cudaMemcpy(d_spring, &temp, sizeof(CUDA_SPRING), cudaMemcpyHostToDevice));
@@ -470,8 +351,9 @@ void Simulation::deleteMass(Mass * m) {
             exit(1);
         }
 
+        updateCudaParameters();
+        invalidate<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, m -> arrayptr, masses.size());
         m -> valid = false;
-        gpuErrchk(cudaFree(m -> arrayptr));
 
 
         thrust::remove(thrust::device, d_masses.begin(), d_masses.begin() + masses.size(), m -> arrayptr);
@@ -479,7 +361,7 @@ void Simulation::deleteMass(Mass * m) {
 
         d_masses.resize(masses.size());
 
-        delete m;
+        m -> decrementRefCount();
 
 #ifdef GRAPHICS
         resize_buffers = true;
@@ -495,14 +377,9 @@ void Simulation::deleteSpring(Spring * s) {
     if (!STARTED) {
         springs.resize(std::remove(springs.begin(), springs.end(), s) - springs.begin());
 
-        if (s -> _left) {
-            s -> _left -> decrementRefCount();
-            s -> _left -> spring_count--;
-        }
-        if (s -> _right) {
-            s -> _right -> decrementRefCount();
-            s -> _right -> spring_count--;
-        }
+        if (s -> _left) { s -> _left -> decrementRefCount(); }
+        if (s -> _right) { s -> _right -> decrementRefCount(); }
+
     } else {
         if (RUNNING) {
             exit(1);
@@ -515,21 +392,6 @@ void Simulation::deleteSpring(Spring * s) {
 
         if (s -> _left) { s -> _left -> decrementRefCount(); }
         if (s -> _right) { s -> _right -> decrementRefCount(); }
-
-        // Update masses
-        if (s -> _left -> density > 0 && s -> _right -> density > 0) {
-            double d = 0.5 * (s->_left->density + s->_right->density);
-            double v = M_PI * s->_diam/2 * s->_diam/2 * s->_rest;
-            double m = d * v;
-
-            s->_left->m -= m/2;
-            s->_right->m -= m/2;
-
-        }
-        /**if (s -> _left -> ref_count > 0)
-            s -> _left -> m -= s -> _left -> m / s -> _left -> ref_count;
-        if (s -> _right -> ref_count > 0)
-            s -> _right -> m -= s -> _right -> m / s -> _right -> ref_count;**/
 
         delete s;
 
@@ -753,7 +615,7 @@ void Simulation::get(Spring * s) {
 
     CUDA_SPRING temp;
     gpuErrchk(cudaMemcpy(&temp, s -> arrayptr, sizeof(CUDA_SPRING), cudaMemcpyDeviceToHost));
-    *s = Spring(temp);
+    s -> update(temp);
 }
 
 void Simulation::set(Spring * s) {
@@ -777,7 +639,6 @@ void Simulation::getAll() {
     }
 
     massFromArray(); // TODO make a note of this
-    springFromArray();
 }
 
 void Simulation::set(Container * c) {
@@ -954,16 +815,14 @@ __global__ void createMassPointers(CUDA_MASS ** ptrs, CUDA_MASS * data, int size
 CUDA_MASS ** Simulation::massToArray() {
     CUDA_MASS ** d_ptrs = new CUDA_MASS * [masses.size()]; // array of pointers
     for (int i = 0; i < masses.size(); i++) { // potentially slow
-        gpuErrchk(cudaMalloc((void **) d_ptrs + i, sizeof(CUDA_MASS *)));
+        gpuErrchk(cudaMalloc((void **) (d_ptrs + i), sizeof(CUDA_MASS))); // TODO Fix this shit
     }
 
     d_masses = thrust::device_vector<CUDA_MASS *>(d_ptrs, d_ptrs + masses.size());
 
-
     CUDA_MASS * h_data = new CUDA_MASS[masses.size()]; // copy masses into single array for copying to the GPU, set GPU pointers
 
     int count = 0;
-
     for (Mass * m : masses) {
         m -> arrayptr = d_ptrs[count];
         h_data[count] = CUDA_MASS(*m);
@@ -973,19 +832,20 @@ CUDA_MASS ** Simulation::massToArray() {
 
     delete [] d_ptrs;
 
-
-
     CUDA_MASS * d_data; // copy to the GPU
     gpuErrchk(cudaMalloc((void **)&d_data, sizeof(CUDA_MASS) * masses.size()));
     gpuErrchk(cudaMemcpy(d_data, h_data, sizeof(CUDA_MASS) * masses.size(), cudaMemcpyHostToDevice));
 
     delete [] h_data;
 
-
     massBlocksPerGrid = (masses.size() + THREADS_PER_BLOCK - 1) / THREADS_PER_BLOCK;
 
     if (massBlocksPerGrid > MAX_BLOCKS) {
         massBlocksPerGrid = MAX_BLOCKS;
+    }
+
+    if (massBlocksPerGrid < 1) {
+        massBlocksPerGrid = 1;
     }
 
     createMassPointers<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(thrust::raw_pointer_cast(d_masses.data()), d_data, masses.size());
@@ -1007,11 +867,10 @@ CUDA_SPRING ** Simulation::springToArray() {
     CUDA_SPRING ** d_ptrs = new CUDA_SPRING * [springs.size()]; // array of pointers
 
     for (int i = 0; i < springs.size(); i++) { // potentially slow, allocate memory for every spring
-        gpuErrchk(cudaMalloc((void **) d_ptrs + i, sizeof(CUDA_SPRING *)));
+        gpuErrchk(cudaMalloc((void **) d_ptrs + i, sizeof(CUDA_SPRING)));
     }
 
     d_springs = thrust::device_vector<CUDA_SPRING *>(d_ptrs, d_ptrs + springs.size()); // copy those pointers to the GPU using thrust
-
 
     CUDA_SPRING * h_spring = new CUDA_SPRING[springs.size()]; // array for the springs themselves
 
@@ -1061,14 +920,6 @@ __global__ void fromMassPointers(CUDA_MASS ** d_mass, CUDA_MASS * data, int size
 
     if (i < size) {
         data[i] = *d_mass[i];
-    }
-}
-
-__global__ void fromSpringPointers(CUDA_SPRING ** d_spring, CUDA_SPRING * data, int size) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (i < size) {
-        data[i] = *d_spring[i];
     }
 }
 
@@ -1140,42 +991,15 @@ void Simulation::massFromArray() {
 }
 
 void Simulation::springFromArray() {
-//    cudaFree(d_spring);
-    CUDA_SPRING * temp;
-    gpuErrchk(cudaMalloc((void **) &temp, sizeof(CUDA_SPRING) * springs.size()));
-
-    fromSpringPointers<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(d_spring, temp, springs.size());
-
-    CUDA_SPRING * h_spring = new CUDA_SPRING[springs.size()];
-    gpuErrchk(cudaMemcpy(h_spring, temp, sizeof(CUDA_SPRING) * springs.size(), cudaMemcpyDeviceToHost));
-    gpuErrchk(cudaFree(temp));
-
-    int count = 0;
-
-    for (Spring * s : springs) {
-        *s = h_spring[count];
-        count++;
-    }
-
-    delete [] h_spring;
 }
 
 void Simulation::constraintsFromArray() {
-    //
 }
 
 void Simulation::fromArray() {
     massFromArray();
     springFromArray();
     constraintsFromArray();
-}
-
-void Simulation::rebalanceMasses(double m) {
-    for (Mass *mass : masses) {
-        mass->m = (mass->ref_count - 1) * m/2;
-    }
-    massToArray();
-
 }
 
 __global__ void printMasses(CUDA_MASS ** d_masses, int num_masses) {
@@ -1205,72 +1029,26 @@ __global__ void printSpring(CUDA_SPRING ** d_springs, int num_springs) {
     }
 }
 
-__global__ void minStressSpringReduction(CUDA_SPRING **d_spring, int num_springs, double *total_min) {
-    int idx = threadIdx.x;
-
-    double partialMin = 1e308;
-    for (size_t i = blockDim.x * blockIdx.x; i < num_springs; i += blockDim.x*gridDim.x) {
-        partialMin = (d_spring[i]->_max_stress < partialMin) ? d_spring[i]->_max_stress : partialMin;
-    }
-    atomicDMin(total_min, partialMin);
-}
-
 __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, double t) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     if ( i < num_springs ) {
         CUDA_SPRING & spring = *d_spring[i];
 
-        if (!spring._compute)
-            return;
-
         if (spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid) // TODO might be expensive with CUDA instruction set
             return;
 
         Vec temp = (spring._right -> pos) - (spring._left -> pos);
-        //	printf("%d, %f, %f\n",spring._type, spring._omega,t);
-        double scale=1.0;
-        double pi = atan(1.0) * 4;
-        double cyclePoint;
-        spring._actuation = 0.0;
-        switch (spring._type) {
-            case ACTIVE_CONTRACT_THEN_EXPAND:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
-                    scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
-            case ACTIVE_EXPAND_THEN_CONTRACT:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
-                    scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
-            case ACTIVE_CONTRACT_THEN_NEUTRAL:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < pi / spring._omega && t >= spring._offset) {
-                    scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
-            case ACTIVE_EXPAND_THEN_NEUTRAL:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < pi / spring._omega && t >= spring._offset) {
-                    scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
-            default: break;
-        }
-        double tempNorm = temp.norm();
-        if (tempNorm == 0) {
-            tempNorm = 1E-6;
-        }
-        Vec force = spring._k * (scale * spring._rest - tempNorm) * (temp / tempNorm);
 
-        if (force.norm() > spring._max_stress) spring._max_stress = force.norm();
-
-        if (force.norm() > spring._break_force) spring._broken = true;
-
-        spring._curr_force = (scale * spring._rest > tempNorm)? force.norm() : -force.norm();
+        double scale = 1.0;
+        if (spring._type == ACTIVE_CONTRACT_THEN_EXPAND){
+            scale = (1 - 0.2 * sin(spring._omega * t));
+        } else if (spring._type == ACTIVE_EXPAND_THEN_CONTRACT){
+            scale = (1 + 0.2 * sin(spring._omega * t));
+	    }
+	
+        Vec force = spring._k * (spring._rest * scale - temp.norm()) * (temp / temp.norm()); // normal spring force
+        force += dot(spring._left -> vel - spring._right -> vel, temp / temp.norm()) * spring._damping * (temp / temp.norm()); // damping
 
 #ifdef CONSTRAINTS
         if (spring._right -> constraints.fixed == false) {
@@ -1280,8 +1058,8 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
             spring._left->force.atomicVecAdd(-force);
         }
 #else
-        spring._right->force.atomicVecAdd(force);
-        spring._left->force.atomicVecAdd(-force);
+        spring._right -> force.atomicVecAdd(force);
+        spring._left -> force.atomicVecAdd(-force);
 #endif
 
     }
@@ -1306,7 +1084,8 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
             return;
 #endif
 
-        mass.force += global * mass.m;
+        mass.force += mass.m * global;
+        // mass.force += mass.external;
 
         for (int j = 0; j < c.num_planes; j++) { // global constraints
             c.d_planes[j].applyForce(&mass);
@@ -1340,16 +1119,10 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
 #endif
 
         mass.acc = mass.force / mass.m;
-        mass.vel = (mass.vel + mass.acc * mass.dt)*mass.damping;
+        mass.vel = mass.vel + mass.acc * mass.dt;
         mass.pos = mass.pos + mass.vel * mass.dt;
 
-        if (mass.extduration < mass.T) {
-            // External force expires
-            mass.extforce = Vec(0, 0, 0);
-        }
-        mass.force = mass.extforce;
-
-        mass.T += mass.dt;
+        mass.force = Vec(0, 0, 0);
     }
 }
 
@@ -1531,21 +1304,6 @@ void Simulation::stop(double t) {
     return;
 }
 
-void Simulation::initCudaParameters() {
-    updateCudaParameters();
-
-    d_constraints.d_balls = thrust::raw_pointer_cast(&d_balls[0]);
-    d_constraints.d_planes = thrust::raw_pointer_cast(&d_planes[0]);
-    d_constraints.num_balls = d_balls.size();
-    d_constraints.num_planes = d_planes.size();
-
-    update_constraints = false;
-    toArray();
-
-    d_mass = thrust::raw_pointer_cast(d_masses.data());
-    d_spring = thrust::raw_pointer_cast(d_springs.data());
-}
-
 void Simulation::start() {
     if (ENDED) {
         throw std::runtime_error("The simulation has ended. Cannot call sim.start() after the end of the simulation.");
@@ -1595,70 +1353,6 @@ void Simulation::start() {
     gpu_thread = std::thread(&Simulation::_run, this);
 }
 
-void Simulation::step(double size) {
-    double stepped = 0;
-
-    if (ENDED) {
-        throw std::runtime_error("The simulation has ended. Cannot call sim.step() after the end of the simulation.");
-    }
-
-    if (masses.size() == 0) {
-        throw std::runtime_error("No masses have been added. Please add masses before starting the simulation.");
-    }
-
-    if (size < this->dt) {
-        throw std::runtime_error("The step size is smaller than the timestep. Please adjust one of the values.");
-    }
-
-    if (!STARTED) {
-        updateCudaParameters();
-
-        d_constraints.d_balls = thrust::raw_pointer_cast(&d_balls[0]);
-        d_constraints.d_planes = thrust::raw_pointer_cast(&d_planes[0]);
-        d_constraints.num_balls = d_balls.size();
-        d_constraints.num_planes = d_planes.size();
-
-        update_constraints = false;
-        toArray();
-
-        d_mass = thrust::raw_pointer_cast(d_masses.data());
-        d_spring = thrust::raw_pointer_cast(d_springs.data());
-    }
-
-    STARTED = true;
-    if (this->dt == 0.0) {
-        dt = 0.01;
-
-        for (Mass *m : masses) {
-            if (m -> dt < dt)
-                dt = m -> dt;
-        }
-    }
-
-    //while(stepped < size/NUM_QUEUED_KERNELS) {
-
-    while(stepped < size) {
-
-        //for (int i = 0; i < NUM_QUEUED_KERNELS; i++) {
-            //cudaDeviceSynchronize();
-
-            computeSpringForces<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(d_spring, springs.size(), T); // compute mass forces after syncing
-            gpuErrchk( cudaPeekAtLastError() );
-
-            massForcesAndUpdate<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, global, d_constraints, masses.size());
-            gpuErrchk( cudaPeekAtLastError() );
-
-            T += dt;
-
-        //}
-
-        stepped += dt;
-    }
-
-    RUNNING = false;
-    GPU_DONE = true;
-}
-
 void Simulation::_run() { // repeatedly start next
 #ifdef GRAPHICS
 
@@ -1698,6 +1392,10 @@ void Simulation::_run() { // repeatedly start next
 }
 
 #ifdef GRAPHICS
+glm::mat4 & Simulation::getProjectionMatrix() {
+    return this -> MVP;
+}
+
 void Simulation::setViewport(const Vec & camera_position, const Vec & target_location, const Vec & up_vector) {
     if (RUNNING) {
         throw std::runtime_error("The simulation is running. Cannot modify viewport during simulation run.");
@@ -1711,6 +1409,7 @@ void Simulation::setViewport(const Vec & camera_position, const Vec & target_loc
         this -> MVP = getProjection(camera, looks_at, up); // compute perspective projection matrix
     }
 }
+
 
 void Simulation::moveViewport(const Vec & displacement) {
     if (RUNNING) {
@@ -1735,6 +1434,10 @@ void Simulation::updateCudaParameters() {
 
     if (springBlocksPerGrid > MAX_BLOCKS) {
         springBlocksPerGrid = MAX_BLOCKS;
+    }
+
+    if (springBlocksPerGrid == 0) {
+        springBlocksPerGrid = 1;
     }
 
     d_mass = thrust::raw_pointer_cast(d_masses.data());
@@ -1799,7 +1502,7 @@ void Simulation::execute() {
                 }
             }
 
-#ifdef GRAPHICS
+#ifdef CONSTRAINTS
             if (resize_buffers) {
                 resizeBuffers(); // needs to be run from GPU thread
                 resize_buffers = false;
@@ -1833,7 +1536,6 @@ void Simulation::execute() {
         gpuErrchk( cudaPeekAtLastError() );
         T += dt;
 #else
-
         for (int i = 0; i < NUM_QUEUED_KERNELS; i++) {
 	        computeSpringForces<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(d_spring, springs.size(), T); // compute mass forces after syncing
             gpuErrchk( cudaPeekAtLastError() );
@@ -1883,7 +1585,6 @@ void Simulation::wait(double t) {
         throw std::runtime_error("The simulation has ended. Control functions cannot be called.");
     }
 
-
     double current_time = time();
     while (RUNNING && time() <= current_time + t) {
         std::this_thread::sleep_for(std::chrono::microseconds(10)); // TODO replace this with wait queue. 
@@ -1894,7 +1595,6 @@ void Simulation::waitUntil(double t) {
     if (ENDED && !FREED) {
         throw std::runtime_error("The simulation has ended. Control functions cannot be called.");
     }
-
 
     while (RUNNING && time() <= t) {
         std::this_thread::sleep_for(std::chrono::microseconds(10));
@@ -1908,74 +1608,6 @@ void Simulation::waitForEvent() {
 
     while (RUNNING) {
         std::this_thread::sleep_for(std::chrono::microseconds(10));
-    }
-}
-
-__global__ void updateVertices(float * gl_ptr, CUDA_MASS ** d_mass, int num_masses) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (i < num_masses) {
-        gl_ptr[3 * i] = (float) d_mass[i] -> pos[0];
-        gl_ptr[3 * i + 1] = (float) d_mass[i] -> pos[1];
-        gl_ptr[3 * i + 2] = (float) d_mass[i] -> pos[2];
-    }
-}
-
-__global__ void updateIndices(unsigned int * gl_ptr, CUDA_SPRING ** d_spring, CUDA_MASS ** d_mass, int num_springs, int num_masses) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (i < num_springs) {
-        if (d_spring[i] -> _left == nullptr || d_spring[i] -> _right == nullptr || ! d_spring[i] -> _left -> valid || ! d_spring[i] -> _right -> valid) {
-            gl_ptr[2*i] = 0;
-            gl_ptr[2*i+1] = 0;
-            return;
-        }
-
-        CUDA_MASS * left = d_spring[i] -> _left;
-        CUDA_MASS * right = d_spring[i] -> _right;
-
-        for (int j = 0; j < num_masses; j++) {
-            if (d_mass[j] == left) {
-                gl_ptr[2*i] = j;
-            }
-
-            if (d_mass[j] == right) {
-                gl_ptr[2*i + 1] = j;
-            }
-        }
-    }
-}
-
-__global__ void updatePairVertices(float *gl_ptr, CUDA_SPRING ** d_spring, CUDA_MASS ** d_mass, int num_springs, int num_masses) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (i < num_springs) {
-        if (d_spring[i] -> _left == nullptr || d_spring[i] -> _right == nullptr || ! d_spring[i] -> _left -> valid || ! d_spring[i] -> _right -> valid) {
-            gl_ptr[2*i] = 0;
-            gl_ptr[2*i+1] = 0;
-            gl_ptr[2*i+2] = 0;
-            gl_ptr[2*i+3] = 0;
-            gl_ptr[2*i+4] = 0;
-            gl_ptr[2*i+5] = 0;
-            return;
-        }
-    }
-
-    CUDA_MASS * left = d_spring[i] -> _left;
-    CUDA_MASS * right = d_spring[i] -> _right;
-
-    for (int j = 0; j < num_masses; j++) {
-        if (d_mass[j] == left) {
-            gl_ptr[2*i] = d_mass[j] -> pos[0];
-            gl_ptr[2*i+1] = d_mass[j] -> pos[1];
-            gl_ptr[2*i+2] = d_mass[j] -> pos[2];
-        }
-
-        if (d_mass[j] == right) {
-            gl_ptr[2*i+3] = d_mass[j] -> pos[0];
-            gl_ptr[2*i+4] = d_mass[j] -> pos[1];
-            gl_ptr[2*i+5] = d_mass[j] -> pos[2];
-        }
     }
 }
 
@@ -2034,6 +1666,41 @@ void Simulation::generateBuffers() {
         glBufferData(GL_ARRAY_BUFFER, 3 * masses.size() * sizeof(GLfloat), NULL, GL_DYNAMIC_DRAW);
         cudaGLRegisterBufferObject(vertexbuffer);
         this -> vertices = vertexbuffer;
+    }
+}
+
+__global__ void updateVertices(float * gl_ptr, CUDA_MASS ** d_mass, int num_masses) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < num_masses) {
+        gl_ptr[3 * i] = (float) d_mass[i] -> pos[0];
+        gl_ptr[3 * i + 1] = (float) d_mass[i] -> pos[1];
+        gl_ptr[3 * i + 2] = (float) d_mass[i] -> pos[2];
+    }
+}
+
+__global__ void updateIndices(unsigned int * gl_ptr, CUDA_SPRING ** d_spring, CUDA_MASS ** d_mass, int num_springs, int num_masses) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < num_springs) {
+        if (d_spring[i] -> _left == nullptr || d_spring[i] -> _right == nullptr || ! d_spring[i] -> _left -> valid || ! d_spring[i] -> _right -> valid) {
+            gl_ptr[2*i] = 0;
+            gl_ptr[2*i] = 0;
+            return;
+        }
+
+        CUDA_MASS * left = d_spring[i] -> _left;
+        CUDA_MASS * right = d_spring[i] -> _right;
+
+        for (int j = 0; j < num_masses; j++) {
+            if (d_mass[j] == left) {
+                gl_ptr[2*i] = j;
+            }
+
+            if (d_mass[j] == right) {
+                gl_ptr[2*i + 1] = j;
+            }
+        }
     }
 }
 
@@ -2107,49 +1774,6 @@ void Simulation::draw() {
 
     glDisableVertexAttribArray(1);
     glDisableVertexAttribArray(0);
-}
-
-#else
-
-// Fills an array with mass positions
-// For use with cudaGraphicsResource structs
-void Simulation::updateMassVertices(float *vertices) {
-    cudaDeviceSynchronize();
-    updateVertices<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(vertices, d_mass, masses.size());
-}
-
-// Fills an array with spring connection indices
-// For use with cudaGraphicsResource structs
-void Simulation::updateSpringIndices(unsigned int *indices) {
-    cudaDeviceSynchronize();
-    updateIndices<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(indices, d_spring, d_mass, springs.size(), masses.size());
-}
-
-// Fills an array buffer with mass positions
-// Note: expects buffer is bound
-void Simulation::exportMassVertices(unsigned int buffer) {
-    void *vertexPointer;
-    cudaGLMapBufferObject(&vertexPointer, buffer);
-    updateVertices<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>((float *) vertexPointer, d_mass, masses.size());
-    cudaGLUnmapBufferObject(buffer);
-}
-
-// Fills an index buffer with spring connection indices
-// Note: expects buffer is bound
-void Simulation::exportSpringIndices(unsigned int buffer) {
-    void *indexPointer;
-    cudaGLMapBufferObject(&indexPointer, buffer);
-    updateIndices<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>((unsigned int *) indexPointer, d_spring, d_mass, springs.size(), masses.size());
-    cudaGLUnmapBufferObject(buffer);
-}
-
-// Fills an index buffer with spring connection vertices
-// Note: expects buffer is bound
-void Simulation::exportSpringVertices(unsigned int buffer) {
-    void *vertexPointer;
-    cudaGLMapBufferObject(&vertexPointer, buffer);
-    updatePairVertices<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>((float *) vertexPointer, d_spring, d_mass, springs.size(), masses.size());
-    cudaGLUnmapBufferObject(buffer);
 }
 
 #endif
@@ -2274,6 +1898,7 @@ Lattice * Simulation::createLattice(const Vec & center, const Vec & dims, int nx
     return l;
 }
 
+#ifdef CONSTRAINTS
 Beam * Simulation::createBeam(const Vec & center, const Vec & dims, int nx, int ny, int nz) {
     if (ENDED) {
         throw std::runtime_error("The simulation has ended. New objects cannot be created.");
@@ -2296,33 +1921,33 @@ Beam * Simulation::createBeam(const Vec & center, const Vec & dims, int nx, int 
 
     return l;
 }
+#endif
 
-
-Robot * Simulation::createRobot(const Vec & center, const cppn& encoding, double side_length,  double omega, double k_soft, double k_stiff){
+// Robot * Simulation::createRobot(const Vec & center, const cppn& encoding, double side_length,  double omega, double k_soft, double k_stiff){
   
-    if (ENDED) {
-        throw std::runtime_error("The simulation has ended. New objects cannot be created.");
-    }
+//     if (ENDED) {
+//         throw std::runtime_error("The simulation has ended. New objects cannot be created.");
+//     }
 
-    Robot * l = new Robot(center, encoding, side_length, omega, k_soft, k_stiff);
+//     Robot * l = new Robot(center, encoding, side_length, omega, k_soft, k_stiff);
 
     
 	   
-    d_masses.reserve(masses.size() + l -> masses.size());
-    d_springs.reserve(springs.size() + l -> springs.size());
+//     d_masses.reserve(masses.size() + l -> masses.size());
+//     d_springs.reserve(springs.size() + l -> springs.size());
 
-    for (Mass * m : l -> masses) {
-        createMass(m);
-    }
+//     for (Mass * m : l -> masses) {
+//         createMass(m);
+//     }
 
-    for (Spring * s : l -> springs) {
-        createSpring(s);
-    }
+//     for (Spring * s : l -> springs) {
+//         createSpring(s);
+//     }
 
-    containers.push_back(l);
+//     containers.push_back(l);
 
-    return l;
-}
+//     return l;
+// }
 
 
 void Simulation::createPlane(const Vec & abc, double d) { // creates half-space ax + by + cz < d
@@ -2332,7 +1957,6 @@ void Simulation::createPlane(const Vec & abc, double d) { // creates half-space 
 
     ContactPlane * new_plane = new ContactPlane(abc, d);
     constraints.push_back(new_plane);
-    planes.push_back(new_plane);
     d_planes.push_back(CudaContactPlane(*new_plane));
 
     update_constraints = true;
@@ -2348,7 +1972,6 @@ void Simulation::createPlane(const Vec & abc, double d, double FRICTION_K, doubl
     new_plane -> _FRICTION_S = FRICTION_S;
 
     constraints.push_back(new_plane);
-    planes.push_back(new_plane);
     d_planes.push_back(CudaContactPlane(*new_plane));
 
     update_constraints = true;
@@ -2428,19 +2051,6 @@ void Simulation::printSprings() {
     }
 
     std::cout << std::endl;
-}
-
-double Simulation::getTotalMass() {
-    double mass = 0;
-
-    if (RUNNING) {
-        getAll();
-    }
-
-    for (Mass *ms : masses) {
-        mass += ms->m;
-    }
-    return mass;
 }
 
 void Simulation::setGlobalAcceleration(const Vec & global) {

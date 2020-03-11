@@ -11,7 +11,7 @@
 #include "vec.h"
 
 #define MAX_BLOCKS 65535 // max number of CUDA blocks
-#define THREADS_PER_BLOCK 512
+#define THREADS_PER_BLOCK 1024
 
 #ifndef GRAPHICS
 #define NUM_QUEUED_KERNELS 4 // number of kernels to queue at a given time (this will reduce the frequency of updates from the CPU by this factor
@@ -29,7 +29,6 @@
 
 #include <algorithm>
 #include <list>
-#include <limits>
 #include <vector>
 #include <set>
 #include <thread>
@@ -42,9 +41,6 @@ public:
 
     Spring * createSpring();
     Spring * createSpring(Mass * m1, Mass * m2);
-
-    Mass * createMass(Mass * m); // utility
-    Spring * createSpring(Spring * s); // utility
 
     // Delete
     void deleteMass(Mass * m);
@@ -60,7 +56,6 @@ public:
 
     void getAll();
     void setAll();
-    void toArray();
 
     // Global constraints (can be rendered)
     void createPlane(const Vec & abc, double d ); // creates half-space ax + by + cz < d
@@ -76,7 +71,7 @@ public:
 
     Cube * createCube(const Vec & center, double side_length); // creates cube
     Lattice * createLattice(const Vec & center, const Vec & dims, int nx = 10, int ny = 10, int nz = 10);
-    Robot * createRobot(const Vec & center, const cppn& encoding, double side_length,  double omega=1.0, double k_soft=2e3, double k_stiff=2e5);
+    // Robot * createRobot(const Vec & center, const cppn& encoding, double side_length,  double omega=1.0, double k_soft=2e3, double k_stiff=2e5);
     Beam * createBeam(const Vec & center, const Vec & dims, int nx = 10, int ny = 10, int nz = 10);
     Container * importFromSTL(const std::string & path, double density = 10.0, int num_rays = 5); // density is vertices / volume
 
@@ -88,10 +83,7 @@ public:
     void defaultRestLength();
 
     // Control
-    void initCudaParameters();
-
     void start(); // start simulation
-    void step(double size); // one step of simulation
 
     void stop(); // stop simulation while paused, free all memory.
     void stop(double time); // stop simulation at time
@@ -99,8 +91,8 @@ public:
     void pause(double t); // pause at time t
     void resume();
 
-    void freeGPU();
     void reset(); // reset the simulation
+    
     void setBreakpoint(double time); // tell the program to stop at a fixed time (doesn't hang).
 
     void wait(double t); // wait fixed time without stopping
@@ -113,8 +105,6 @@ public:
     void printPositions();
     void printForces();
 
-    double getTotalMass();
-
     Simulation();
     ~Simulation();
 
@@ -125,46 +115,26 @@ public:
     std::vector<Mass *> masses;
     std::vector<Spring *> springs;
     std::vector<Container *> containers;
-    std::vector<ContactPlane *> planes;
 
-    Vec global; // global force
-
-    void copy(const Simulation &src);
-    void append(const Simulation &src);
-    void cpuSnapshot(const Simulation &src);
     void setGlobalAcceleration(const Vec & global);
-    void rebalanceMasses(double m);
-
-    CUDA_MASS ** d_mass;
-    CUDA_SPRING ** d_spring;
-
-    int massBlocksPerGrid;
-    int springBlocksPerGrid;
-
-    // TODO can't get full thrust functionality (reduce, sort, etc.) for pointer vectors
-    // Should convert to thrust::device_vector<CUDA_MASS> type
-    thrust::device_vector<CUDA_MASS *> d_masses;
-    thrust::device_vector<CUDA_SPRING *> d_springs;
 
 #ifdef GRAPHICS
     void setViewport(const Vec & camera_position, const Vec & target_location, const Vec & up_vector);
     void moveViewport(const Vec & displacement);
-#else
-    // Methods for filling external graphics buffers
-    void exportMassVertices(unsigned int buffer);
-    void exportSpringIndices(unsigned int buffer);
-    void exportSpringVertices(unsigned int buffer);
-    void updateMassVertices(float *vertices);
-    void updateSpringIndices(unsigned int *indices);
+    glm::mat4 & getProjectionMatrix();
 #endif
 
 private:
+    void freeGPU();
     void _run();
 
     void execute(); // same as above but w/out reset
 
     //Prints
     void printSprings();
+
+    Mass * createMass(Mass * m); // utility
+    Spring * createSpring(Spring * s); // utility
 
     double dt; // set to 0 by default, when start is called will be set to min(mass dt) unless previously set
     double T; // global simulation time
@@ -177,6 +147,9 @@ private:
 
     std::vector<Constraint *> constraints;
 
+    thrust::device_vector<CUDA_MASS *> d_masses;
+    thrust::device_vector<CUDA_SPRING *> d_springs;
+
     thrust::device_vector<CudaContactPlane> d_planes; // used for constraints
     thrust::device_vector<CudaBall> d_balls; // used for constraints
 
@@ -187,9 +160,16 @@ private:
 
     std::set<double> bpts; // list of breakpoints
 
+    CUDA_MASS ** d_mass;
+    CUDA_SPRING ** d_spring;
+
+    int massBlocksPerGrid;
+    int springBlocksPerGrid;
+
     CUDA_MASS ** massToArray();
     CUDA_SPRING ** springToArray();
     void constraintsToArray();
+    void toArray();
 
     void massFromArray();
     void springFromArray();
@@ -197,6 +177,7 @@ private:
     void fromArray();
 
     std::thread gpu_thread;
+    Vec global; // global force
 
 #ifdef GRAPHICS
 
