@@ -19,6 +19,7 @@
 #endif
 
 #include <vector>
+using namespace  std;
 
 #ifdef CONSTRAINTS
 #include <thrust/device_vector.h>

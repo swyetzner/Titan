@@ -2324,7 +2324,7 @@ Robot * Simulation::createRobot(const Vec & center, const cppn& encoding, double
     return l;
 }
 
-void Simulation::createJoint(vector<Mass *> massesA, vector<Mass *> massesB, Mass * a, Mass * b) {
+Joint * Simulation::createJoint(vector<Mass *> massesA, vector<Mass *> massesB, Mass * a, Mass * b) {
 
 
     if (ENDED) {
