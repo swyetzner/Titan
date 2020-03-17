@@ -2324,6 +2324,31 @@ Robot * Simulation::createRobot(const Vec & center, const cppn& encoding, double
     return l;
 }
 
+void Simulation::createJoint(vector<Mass *> massesA, vector<Mass *> massesB, Mass * a, Mass * b) {
+
+
+    if (ENDED) {
+        throw std::runtime_error("The simulation has ended. New objects cannot be created.");
+    }
+
+    Joint * j = new Joint(massesA, massesB, a, b);
+
+    d_masses.reserve(masses.size() + j->masses.size());
+    d_springs.reserve(springs.size() + j->springs.size());
+
+    for (Mass * m : j->masses) {
+        createMass(m);
+    }
+
+    for (Spring * s : j->springs) {
+        createSpring(s);
+    }
+
+    containers.push_back(j);
+
+    return j;
+}
+
 
 void Simulation::createPlane(const Vec & abc, double d) { // creates half-space ax + by + cz < d
     if (ENDED) {

@@ -227,6 +227,53 @@ void Container::rotate(const Vec & axis, double angle) {
     }
 }
 
+
+Joint::Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, const Mass * bodyPivot, const Mass * legPivot) {
+
+    this->bodyPoints = bodyPoints;
+    this->legPoints = legPoints;
+    this->bodyBars = vector<Spring *>();
+    this->legBars = vector<Spring *>();
+
+    // create axis
+    Spring *axis = new Spring(bodyPivot, legPivot);
+    springs.push_back(axis);
+    this->axis = axis;
+
+    // create joint springs
+    for (Mass * m : bodyPoints) {
+        Spring *ab = new Spring(m, legPivot);
+        springs.push_back(ab);
+        this->bodyBars.push_back(ab);
+    }
+    for (Mass * m : massesB) {
+        Spring *ba = new Spring(bodyPivot, m);
+        springs.push_back(ba);
+        this->legBars.push_back(ba);
+    }
+
+    for (Spring * s : springs) {
+        s -> setRestLength((s -> _right -> pos - s -> _left -> pos).norm());
+    }
+}
+
+Joint::rotateLeg(double theta) {
+
+    Vec a = this->axis->_left->pos - this->axis->_right->pos;
+    for (Mass * m : legPoints) {
+        m->pos = rotateAroundAxis(m->pos, a, theta);
+    }
+
+    for (Spring * s : bodyBars) {
+        assert((s->_left->pos - s->_right->pos).norm() == s->_rest);
+    }
+    for (Spring * s : legBars) {
+        assert((s->_left->pos - s->_right->pos).norm() == s->_rest);
+    }
+
+}
+
+
 Lattice::Lattice(const Vec & center, const Vec & dims, int nx, int ny, int nz) {
     _center = center;
     _dims = dims;

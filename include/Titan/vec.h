@@ -160,6 +160,30 @@ public:
         return l > 0 ? (*this)/l : (*this);
     }
 
+    // http://paulbourke.net/geometry/rotate/
+    CUDA_CALLABLE_MEMBER Vec rotateAroundAxis(const Vec &p, const Vec &axis, const double theta) const {
+        Vec q = Vec(0.0, 0.0, 0.0);
+        double costheta, sintheta;
+
+        Vec r = axis.normalized();
+        costheta = cos(theta);
+        sintheta = sin(theta);
+
+        q[0] += (costheta + (1 - costheta) * r[0] * r[0]) * p[0];
+        q[0] += ((1 - costheta) * r[0] * r[1] - r[2] * sintheta) * p[1];
+        q[0] += ((1 - costheta) * r[0] * r[2] + r[1] * sintheta) * p[2];
+
+        q[1] += ((1 - costheta) * r[0] * r[1] + r[2] * sintheta) * p[0];
+        q[1] += (costheta + (1 - costheta) * r[1] * r[1]) * p[1];
+        q[1] += ((1 - costheta) * r[1] * r[2] - r[0] * sintheta) * p[2];
+
+        q[2] += ((1 - costheta) * r[0] * r[2] - r[1] * sintheta) * p[0];
+        q[2] += ((1 - costheta) * r[1] * r[2] + r[0] + sintheta) * p[1];
+        q[2] += (costheta + (1 - costheta) * r[2] * r[2]) * p[2];
+
+        return q;
+    }
+
 private:
 };
 

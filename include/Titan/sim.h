@@ -80,6 +80,8 @@ public:
     Beam * createBeam(const Vec & center, const Vec & dims, int nx = 10, int ny = 10, int nz = 10);
     Container * importFromSTL(const std::string & path, double density = 10.0, int num_rays = 5); // density is vertices / volume
 
+    Joint * createJoint(vector<Mass *> massesA, vector<Mass *> massesB, Mass * a, Mass * b);
+
     // Bulk modifications, only update CPU
     void setAllSpringConstantValues(double k);
     void setAllMassValues(double m);

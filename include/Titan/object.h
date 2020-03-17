@@ -301,5 +301,21 @@ public:
     /* double _score; */
 };
 
+class Joint : public Container {
+public:
+    ~Joint() {};
+
+    Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, const Mass * bodyPivot, const Mass * legPivot);
+
+    vector<Mass *> bodyPoints;
+    vector<Mass *> legPoints;
+    Spring * axis;
+    vector<Spring *> bodyBars;
+    vector<Spring *> legBars;
+
+    void rotateLeg(double theta);
+
+};
+
 
 #endif //TITAN_OBJECT_H
