@@ -306,7 +306,7 @@ class Joint : public Container {
 public:
     ~Joint() {};
 
-    Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, const Mass * bodyPivot, const Mass * legPivot);
+    Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, Mass * bodyPivot, Mass * legPivot);
 
     vector<Mass *> bodyPoints;
     vector<Mass *> legPoints;

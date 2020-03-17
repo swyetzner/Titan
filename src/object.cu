@@ -228,7 +228,7 @@ void Container::rotate(const Vec & axis, double angle) {
 }
 
 
-Joint::Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, const Mass * bodyPivot, const Mass * legPivot) {
+Joint::Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, Mass * bodyPivot, Mass * legPivot) {
 
     this->bodyPoints = bodyPoints;
     this->legPoints = legPoints;
@@ -246,7 +246,7 @@ Joint::Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, co
         springs.push_back(ab);
         this->bodyBars.push_back(ab);
     }
-    for (Mass * m : massesB) {
+    for (Mass * m : legPoints) {
         Spring *ba = new Spring(bodyPivot, m);
         springs.push_back(ba);
         this->legBars.push_back(ba);
@@ -257,7 +257,7 @@ Joint::Joint(const vector<Mass *> bodyPoints, const vector<Mass *> legPoints, co
     }
 }
 
-Joint::rotateLeg(double theta) {
+void Joint::rotateLeg(double theta) {
 
     Vec a = this->axis->_left->pos - this->axis->_right->pos;
     for (Mass * m : legPoints) {
