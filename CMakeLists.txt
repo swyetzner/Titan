@@ -1,5 +1,6 @@
-cmake_minimum_required(VERSION 3.10)
+Cmake_Minimum_required(VERSION 3.10)
 
+set(CMAKE_CUDA_COMPILER /usr/local/cuda/bin/nvcc)
 project(Titan LANGUAGES C CXX CUDA) # use CXX, CUDA by default (since CUDA is a language, don't need cuda_add_executable)
 
 set(CMAKE_CXX_STANDARD 14) # set C++ standard to C++11
@@ -29,6 +30,7 @@ add_library(Titan ${TITAN_SOURCE_FILES} ${TITAN_HEADER_FILES})
 set_target_properties(Titan PROPERTIES CUDA_SEPARABLE_COMPILATION ON) # needed for library compilation
 set_target_properties(Titan PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
 
+target_compile_definitions(Titan PUBLIC GRAPHICS)
 target_compile_definitions(Titan PUBLIC CONSTRAINTS) # defines the CONSTRAINTS preprocessor variable (enables local constraints)
 
 if (NOT TITAN_SHARED_BUILD)
@@ -61,7 +63,7 @@ else()
     endif()
 endif()
 
-option(USE_TitanGraphics "Use_TitanGraphics" OFF)
+option(USE_TitanGraphics "Use_TitanGraphics" ON)
 if (USE_TitanGraphics)
     find_package(glfw3 CONFIG REQUIRED)
     if (glfw3_FOUND)
@@ -90,6 +92,20 @@ target_include_directories(Titan PUBLIC
         $<INSTALL_INTERFACE:include>)
 
 set_target_properties(Titan PROPERTIES PUBLIC_HEADER "${TITAN_HEADER_FILES}")
+
+add_executable(Titan_Test ${TITAN_SOURCE_DIR}/main.cpp ${TITAN_HEADER_FILES} ${TITAN_SOURCE_FILES})
+target_include_directories(Titan_Test PUBLIC ${TITAN_HEADER_DIR})
+target_link_libraries(Titan_Test PRIVATE Titan
+  PRIVATE cuda
+  PRIVATE GL
+  PRIVATE glm
+  PRIVATE GLEW
+  PRIVATE glfw)
+
+
+set_target_properties(Titan_Test PROPERTIES CUDA_SEPARABLE_COMPILATION ON) # needed for library compilation
+set_target_properties(Titan_Test PROPERTIES CUDA_RESOLVE_DEVICE_SYMBOLS ON)
+
 
 install(TARGETS Titan
         EXPORT TitanTargets
