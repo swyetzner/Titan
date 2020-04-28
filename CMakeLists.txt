@@ -46,7 +46,7 @@ else()
 endif()
 
 if (UNIX)
-    find_package(OpenGL REQUIRED) # find and include OpenGL
+    find_package(OpenGL) # find and include OpenGL
     if (OpenGL_FOUND)
         message(STATUS "OPENGL FOUND")
         target_include_directories(Titan PRIVATE ${OpenGL_INCLUDE_DIRS})

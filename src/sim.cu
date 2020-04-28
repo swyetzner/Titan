@@ -11,12 +11,12 @@
 
 #ifdef GRAPHICS
 #include <GLFW/glfw3.h>
+#include <cuda_gl_interop.h>
 #endif
 
 #include <cuda_runtime.h>
 #include <cuda.h>
 #include <cuda_device_runtime_api.h>
-#include <cuda_gl_interop.h>
 #include <exception>
 #include <device_launch_parameters.h>
 
@@ -2099,47 +2099,6 @@ void Simulation::draw() {
 }
 
 #else
-
-// Fills an array with mass positions
-// For use with cudaGraphicsResource structs
-void Simulation::updateMassVertices(float *vertices) {
-    cudaDeviceSynchronize();
-    updateVertices<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(vertices, d_mass, masses.size());
-}
-
-// Fills an array with spring connection indices
-// For use with cudaGraphicsResource structs
-void Simulation::updateSpringIndices(unsigned int *indices) {
-    cudaDeviceSynchronize();
-    updateIndices<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(indices, d_spring, d_mass, springs.size(), masses.size());
-}
-
-// Fills an array buffer with mass positions
-// Note: expects buffer is bound
-void Simulation::exportMassVertices(unsigned int buffer) {
-    void *vertexPointer;
-    cudaGLMapBufferObject(&vertexPointer, buffer);
-    updateVertices<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>((float *) vertexPointer, d_mass, masses.size());
-    cudaGLUnmapBufferObject(buffer);
-}
-
-// Fills an index buffer with spring connection indices
-// Note: expects buffer is bound
-void Simulation::exportSpringIndices(unsigned int buffer) {
-    void *indexPointer;
-    cudaGLMapBufferObject(&indexPointer, buffer);
-    updateIndices<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>((unsigned int *) indexPointer, d_spring, d_mass, springs.size(), masses.size());
-    cudaGLUnmapBufferObject(buffer);
-}
-
-// Fills an index buffer with spring connection vertices
-// Note: expects buffer is bound
-void Simulation::exportSpringVertices(unsigned int buffer) {
-    void *vertexPointer;
-    cudaGLMapBufferObject(&vertexPointer, buffer);
-    updatePairVertices<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>((float *) vertexPointer, d_spring, d_mass, springs.size(), masses.size());
-    cudaGLUnmapBufferObject(buffer);
-}
 
 #endif
 

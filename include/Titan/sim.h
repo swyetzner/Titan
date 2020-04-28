@@ -150,12 +150,7 @@ public:
     void setViewport(const Vec & camera_position, const Vec & target_location, const Vec & up_vector);
     void moveViewport(const Vec & displacement);
 #else
-    // Methods for filling external graphics buffers
-    void exportMassVertices(unsigned int buffer);
-    void exportSpringIndices(unsigned int buffer);
-    void exportSpringVertices(unsigned int buffer);
-    void updateMassVertices(float *vertices);
-    void updateSpringIndices(unsigned int *indices);
+
 #endif
 
 private:
