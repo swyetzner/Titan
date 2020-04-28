@@ -51,6 +51,7 @@ public:
     double T; // local time
     double damping; // damping mass velocity
     double extduration; // duration of external force
+    double density; // density of material
     Vec pos; // position in m
     Vec vel; // velocity in m/s
     Vec acc; // acceleration in m/s^2
@@ -64,6 +65,8 @@ public:
 
     bool valid; // false if mass has been deleted from arrays
 
+
+    Mass();
 
     Mass(const Mass &other);
     Mass(const Vec & position, double mass = 0.1, bool fixed = false, double dt = 0.0001);
@@ -89,7 +92,6 @@ private:
 
     CUDA_MASS * arrayptr; //Pointer to struct version for GPU cudaMemAlloc
 
-    Mass();
     void operator=(CUDA_MASS & mass);
 
     friend class Simulation;
