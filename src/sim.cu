@@ -517,7 +517,7 @@ void Simulation::deleteSpring(Spring * s) {
         if (s -> _right) { s -> _right -> decrementRefCount(); }
 
         // Update masses
-        if (s -> _left -> density > 0 && s -> _right -> density > 0) {
+        /*if (s -> _left -> density > 0 && s -> _right -> density > 0 && s -> _k != 0) {
             double d = 0.5 * (s->_left->density + s->_right->density);
             double v = M_PI * s->_diam/2 * s->_diam/2 * s->_rest;
             double m = d * v;
@@ -525,7 +525,7 @@ void Simulation::deleteSpring(Spring * s) {
             s->_left->m -= m/2;
             s->_right->m -= m/2;
 
-        }
+        }*/
         /**if (s -> _left -> ref_count > 0)
             s -> _left -> m -= s -> _left -> m / s -> _left -> ref_count;
         if (s -> _right -> ref_count > 0)
@@ -1222,6 +1222,9 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
         CUDA_SPRING & spring = *d_spring[i];
 
         if (!spring._compute)
+            return;
+
+        if (!spring._k)
             return;
 
         if (spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid) // TODO might be expensive with CUDA instruction set
