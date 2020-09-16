@@ -7,6 +7,7 @@
 
 #include "spring.h"
 #include "mass.h"
+#include "fourier.h"
 #include "object.h"
 #include "vec.h"
 
@@ -68,6 +69,8 @@ public:
 
     void createBall(const Vec & center, double r ); // creates ball with radius r at position center
 
+    void createDiscreteFourier(double uf, double lf, int b, int n);
+
     void clearConstraints(); // clears global constraints only
 
     // Containers
@@ -126,6 +129,7 @@ public:
     std::vector<Spring *> springs;
     std::vector<Container *> containers;
     std::vector<ContactPlane *> planes;
+    std::vector<Fourier *> fouriers;
 
     Vec global; // global force
 
@@ -175,8 +179,13 @@ private:
     thrust::device_vector<CudaContactPlane> d_planes; // used for constraints
     thrust::device_vector<CudaBall> d_balls; // used for constraints
 
+    CUDA_FOURIER * d_fourier;
+
     CUDA_GLOBAL_CONSTRAINTS d_constraints;
     bool update_constraints;
+
+    thrust::device_vector<CUDA_FOURIER> d_fouriers;
+    void deriveFourierParameters(Fourier * f, double ts, int nmasses);
 
     void updateCudaParameters();
 

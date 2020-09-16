@@ -69,6 +69,7 @@ __global__ void createMassPointers(CUDA_MASS ** ptrs, CUDA_MASS * data, int size
 
 __global__ void computeSpringForces(CUDA_SPRING * device_springs, int num_springs, double t);
 __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL_CONSTRAINTS c, int num_masses);
+__global__ void discreteFourierTransform(CUDA_MASS ** d_mass, CUDA_FOURIER * f, int size);
 
 bool Simulation::RUNNING;
 bool Simulation::STARTED;
@@ -1504,6 +1505,15 @@ void Simulation::createGLFWWindow() {
 #endif
 #endif
 
+__global__ void discreteFourierTransform(CUDA_MASS ** masses, CUDA_FOURIER * f, int size) {
+    int i = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (i < size) {
+        CUDA_MASS &mass = *masses[i];
+
+    }
+}
+
 void Simulation::stop() { // no race condition actually
     if (RUNNING) {
         setBreakpoint(time());
@@ -1613,6 +1623,15 @@ void Simulation::step(double size) {
         throw std::runtime_error("The step size is smaller than the timestep. Please adjust one of the values.");
     }
 
+    if (this->dt == 0.0) {
+        dt = 0.01;
+
+        for (Mass *m : masses) {
+            if (m -> dt < dt)
+                dt = m -> dt;
+        }
+    }
+
     if (!STARTED) {
         updateCudaParameters();
 
@@ -1624,19 +1643,17 @@ void Simulation::step(double size) {
         update_constraints = false;
         toArray();
 
+        d_fourier = thrust::raw_pointer_cast(d_fouriers.data());
         d_mass = thrust::raw_pointer_cast(d_masses.data());
         d_spring = thrust::raw_pointer_cast(d_springs.data());
+
+        for (Fourier * f : fouriers) {
+            assert(f->upperFreq != 0);
+            deriveFourierParameters(f, dt, masses.size());
+        }
     }
 
     STARTED = true;
-    if (this->dt == 0.0) {
-        dt = 0.01;
-
-        for (Mass *m : masses) {
-            if (m -> dt < dt)
-                dt = m -> dt;
-        }
-    }
 
     //while(stepped < size/NUM_QUEUED_KERNELS) {
 
@@ -1656,6 +1673,13 @@ void Simulation::step(double size) {
         //}
 
         stepped += dt;
+    }
+
+    for (Fourier * f : fouriers) {
+        if (T - f->last_recorded > f->ts) {
+            // RUN SDFT KERNEL
+            discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier, masses.size());
+        }
     }
 
     RUNNING = false;
@@ -2326,6 +2350,39 @@ void Simulation::createBall(const Vec & center, double r ) { // creates ball wit
     d_balls.push_back(CudaBall(*new_ball));
 
     update_constraints = true;
+}
+
+void Simulation::createDiscreteFourier(double uf, double lf, int b, int n) {
+    if (ENDED) {
+        throw std::runtime_error("The simulation has ended. New fourier transforms cannot be added.");
+    }
+
+    Fourier * new_fourier = new Fourier(uf, lf, b);
+    fouriers.push_back(new_fourier);
+    d_fouriers.push_back(CUDA_FOURIER(*new_fourier));
+}
+
+void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
+    assert(f->upperFreq != 0);
+
+    double ideal_ts = 1 / (2 * f->upperFreq);
+    double real_ts = ceil(ideal_ts / ts) * ts;
+    double fs = 1 / real_ts;
+
+    f->ts = real_ts;
+    f->upperFreq = 0.5 * fs;
+    f->n = ceil(fs * f->bands / (f->upperFreq - f->lowerFreq));
+
+    double fres = fs / f->n;
+    f->bands = ceil((f->upperFreq - f->lowerFreq) / fres);
+
+    int low_band = int(round(f->lowerFreq / fres));
+
+    // Initialize 2d array of complex numbers for each mass
+    f->massComplexArray = new std::complex<double>*[nmasses];
+    for (int i = 0; i < nmasses; i++) {
+        f->massComplexArray[i] = new std::complex<double>[f->bands];
+    }
 }
 
 void Simulation::clearConstraints() { // clears global constraints only
