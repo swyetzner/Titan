@@ -1679,6 +1679,7 @@ void Simulation::step(double size) {
         if (T - f->last_recorded > f->ts) {
             // RUN SDFT KERNEL
             discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier, masses.size());
+            f->last_recorded = T;
         }
     }
 
