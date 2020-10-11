@@ -193,7 +193,36 @@ CUDA_CALLABLE_MEMBER Vec cross(const Vec &v1, const Vec &v2) {
     return Vec(v1[1] * v2[2] - v1[2] * v2[1], v2[0] * v1[2] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
+ComplexVec::ComplexVec() {
+	cuDoubleComplex z = make_cuDoubleComplex(0, 0);
+    data[0] = z;
+    data[1] = z;
+   	data[2] = z;
+} // default
 
+ComplexVec::ComplexVec(const ComplexVec & v) {
+    data[0] = v.data[0];
+    data[1] = v.data[1];
+    data[2] = v.data[2];
+} // copy constructor
+
+ComplexVec::ComplexVec(cuDoubleComplex x, cuDoubleComplex y, cuDoubleComplex z) {
+    data[0] = x;
+    data[1] = y;
+    data[2] = z;
+} // initialization from x, y, and z values
+
+ComplexVec & ComplexVec::operator=(const ComplexVec & v) {
+    if (this == &v) {
+        return *this;
+    }
+
+    data[0] = v.data[0];
+    data[1] = v.data[1];
+    data[2] = v.data[2];
+
+    return *this;
+}
 
 
 
