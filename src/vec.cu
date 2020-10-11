@@ -334,11 +334,11 @@ std::ostream & operator << (std::ostream & strm, const ComplexVec & v) {
 void ComplexVec::print() {
 	printf("(%3f + %3fi, %3f + %3fi, %3f + %3fi)\n", cuCreal(data[0]),cuCimaj(data[0]), cuCreal(data[1]),cuCimaj(data[1]), cuCreal(data[2]),cuCimaj(data[2]));
 }
-*/
+
 cuDoubleComplex ComplexVec::sum() const {
 	return make_cuDoubleComplex(cuCadd(cuCadd(data[0],data[1],data[2])));
 }
-
+*/
 
 
 
