@@ -307,6 +307,8 @@ bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 	return (real && imaj);
 }
 
+/* WORK IN PROGRESS
+
 ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2) {
 	return v1+=v2;
 }
@@ -327,6 +329,7 @@ std::ostream & operator << (std::ostream & strm, const ComplexVec & v) {
 	return strm << "(" << cuCreal(v[0]) << " + " << cuCimag(v[0]) << "i" << ", " << cuCreal(v[1]) << " + " << cuCimaj(v[0]) << "i" << ", " << cuCreal(v[2]) << " + " << cuCimag(v[0]) << "i)";
 }
 
+*/
 void ComplexVec::print() {
 	printf("(%3f + %3fi, %3f + %3fi, %3f + %3fi)\n", cuCreal(data[0]),cuCimaj(data[0]), cuCreal(data[1]),cuCimaj(data[1]), cuCreal(data[2]),cuCimaj(data[2]));
 }
