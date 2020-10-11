@@ -283,7 +283,7 @@ ComplexVec & ComplexVec::operator/=(double x) {
 }
 
 //CUDA_CALLABLE_MEMBER ComplexVec operator-() const; // returns the negative -z = -a -bi
-cuComplex & ComplexVec::operator [] (int n) {
+cuDoubleComplex & ComplexVec::operator [] (int n) {
 	if (n < 0 || n >= 3) {
         printf("%s\n", "Out of bounds!");
         return data[0];

@@ -78,7 +78,7 @@ public:
     CUDA_CALLABLE_MEMBER ComplexVec();
     CUDA_CALLABLE_MEMBER ComplexVec(const ComplexVec & v);
     CUDA_CALLABLE_MEMBER ComplexVec(cuDoubleComplex x, cuDoubleComplex y, cuDoubleComplex z);
-    CUDA_CALLABLE_MEMBER ComplexVec & operator=(const Vec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator=(const ComplexVec & v);
 
     CUDA_CALLABLE_MEMBER ComplexVec & operator+=(const ComplexVec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator-=(const ComplexVec & v);
@@ -91,7 +91,7 @@ public:
     CUDA_CALLABLE_MEMBER ComplexVec & operator/=(double x);
 
     //CUDA_CALLABLE_MEMBER ComplexVec operator-() const; // returns the negative -z = -a -bi
-    CUDA_CALLABLE_MEMBER cuComplex & operator [] (int n);
+    CUDA_CALLABLE_MEMBER cuDoubleComplex & operator [] (int n);
     CUDA_CALLABLE_MEMBER const cuDoubleComplex & operator [] (int n) const;
     CUDA_CALLABLE_MEMBER friend bool operator==(const ComplexVec & v1, const ComplexVec & v2);
 
