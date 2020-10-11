@@ -149,7 +149,7 @@ bool operator<(const Vec &v1, const Vec &v2) {
 }
 
 bool operator>(const Vec &v1, const Vec &v2) {
-    return !(v1<v2)
+    return !(v1<v2);
 }
 
 Vec operator*(const Vec & v1, const Vec & v2) {
