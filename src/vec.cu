@@ -230,24 +230,28 @@ ComplexVec & ComplexVec::operator+=(const ComplexVec & v) {
 	data[0] = cuCadd(data[0],v.data[0]);
     data[1] = cuCadd(data[1],v.data[1]);
     data[2] = cuCadd(data[2],v.data[2]);
+    return *this;
 }
 
 ComplexVec & ComplexVec::operator-=(const ComplexVec & v) {
 	data[0] = cuCsub(data[0],v.data[0]);
     data[1] = cuCsub(data[1],v.data[1]);
     data[2] = cuCsub(data[2],v.data[2]);
+    return *this;
 }
 
 ComplexVec & ComplexVec::operator*=(const ComplexVec & v) {
 	data[0] = cuCmul(data[0],v.data[0]);
     data[1] = cuCmul(data[1],v.data[1]);
     data[2] = cuCmul(data[2],v.data[2]);
+    return *this;
 }
 
 ComplexVec & ComplexVec::operator/=(const ComplexVec & v) {
 	data[0] = cuCdiv(data[0],v.data[0]);
     data[1] = cuCdiv(data[1],v.data[1]);
     data[2] = cuCdiv(data[2],v.data[2]);
+    return *this;
 }
 
 ComplexVec & ComplexVec::operator+=(double x) {
