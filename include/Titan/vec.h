@@ -62,26 +62,15 @@ public:
         return (v1[0] == v2[0] && v1[1] == v2[1] && v1[2] == v2[2]);
     }
 
-    CUDA_CALLABLE_MEMBER friend bool operator<(const Vec &v1, const Vec &v2) {
-        return ((v1[0] < v2[0]) || (v1[0] <= v2[0] && v1[1] < v2[1])
-                || (v1[0] <= v2[0] && v1[1] <= v2[1] && v1[2] < v2[2]));
-    }
+    CUDA_CALLABLE_MEMBER friend bool operator<(const Vec &v1, const Vec &v2);
 
-    CUDA_CALLABLE_MEMBER friend Vec operator*(const Vec & v1, const Vec & v2) {
-        return Vec(v1.data[0] * v2.data[0], v1.data[1] * v2.data[1], v1.data[2] * v2.data[2]);
-    } // Multiplies two Vecs (elementwise)
+    CUDA_CALLABLE_MEMBER friend Vec operator*(const Vec & v1, const Vec & v2);
 
-    CUDA_CALLABLE_MEMBER friend Vec operator/(const Vec & v, const double x) {
-        return Vec(v.data[0] / x, v.data[1] / x, v.data[2] / x);
-    } //  vector over double
+    CUDA_CALLABLE_MEMBER friend Vec operator/(const Vec & v, const double x);
 
-    CUDA_CALLABLE_MEMBER friend Vec operator/(const Vec & v1, const Vec & v2) {
-        return Vec(v1.data[0] / v2.data[0], v1.data[1] / v2.data[1], v1.data[2] / v2.data[2]);
-    } // divides two Vecs (elementwise)
+    CUDA_CALLABLE_MEMBER friend Vec operator/(const Vec & v1, const Vec & v2);
 
-    friend std::ostream & operator << (std::ostream & strm, const Vec & v) {
-        return strm << "(" << v[0] << ", " << v[1] << ", " << v[2] << ")";
-    } // print
+    friend std::ostream & operator << (std::ostream & strm, const Vec & v);
 
     CUDA_CALLABLE_MEMBER void print() {
         printf("(%3f, %3f, %3f)\n", data[0], data[1], data[2]);

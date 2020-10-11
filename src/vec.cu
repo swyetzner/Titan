@@ -137,7 +137,32 @@ Vec operator*(const double x, const Vec & v) {
 
 Vec operator*(const Vec & v, const double x) {
     return x * v;
-} // double times Vec
+}
+
+bool operator<(const Vec &v1, const Vec &v2) {
+    return ((v1[0] < v2[0]) || (v1[0] <= v2[0] && v1[1] < v2[1])
+            || (v1[0] <= v2[0] && v1[1] <= v2[1] && v1[2] < v2[2]));
+}
+
+Vec operator*(const Vec & v1, const Vec & v2) {
+    return Vec(v1.data[0] * v2.data[0], v1.data[1] * v2.data[1], v1.data[2] * v2.data[2]);
+} // Multiplies two Vecs (elementwise)
+
+Vec operator/(const Vec & v, const double x) {
+    return Vec(v.data[0] / x, v.data[1] / x, v.data[2] / x);
+} //  vector over double
+
+Vec operator/(const Vec & v1, const Vec & v2) {
+    return Vec(v1.data[0] / v2.data[0], v1.data[1] / v2.data[1], v1.data[2] / v2.data[2]);
+} // divides two Vecs (elementwise)
+
+std::ostream & operator << (std::ostream & strm, const Vec & v) {
+    return strm << "(" << v[0] << ", " << v[1] << ", " << v[2] << ")";
+} // print
+
+
+
+ // double times Vec
 //
 //
 //
