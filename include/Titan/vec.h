@@ -27,6 +27,7 @@
 #include <math.h>
 #include <iostream>
 #include <cmath>
+#include <cuComplex.h>
 
 class Vec {
 public:
@@ -45,43 +46,67 @@ public:
     CUDA_DEVICE void atomicVecExch(const Vec &v);
 
     CUDA_CALLABLE_MEMBER Vec operator-() const;
-
     CUDA_CALLABLE_MEMBER double & operator [] (int n);
-
     CUDA_CALLABLE_MEMBER const double & operator [] (int n) const;
 
     CUDA_CALLABLE_MEMBER friend Vec operator+(const Vec & v1, const Vec & v2);
-
     CUDA_CALLABLE_MEMBER friend Vec operator-(const Vec & v1, const Vec & v2);
-
     CUDA_CALLABLE_MEMBER friend Vec operator*(const double x, const Vec & v);
-
     CUDA_CALLABLE_MEMBER friend Vec operator*(const Vec & v, const double x);
-
-    CUDA_CALLABLE_MEMBER friend bool operator==(const Vec & v1, const Vec & v2) {
-        return (v1[0] == v2[0] && v1[1] == v2[1] && v1[2] == v2[2]);
-    }
-
+    CUDA_CALLABLE_MEMBER friend bool operator==(const Vec & v1, const Vec & v2);
     CUDA_CALLABLE_MEMBER friend bool operator<(const Vec &v1, const Vec &v2);
-
+    CUDA_CALLABLE_MEMBER friend bool operator>(const Vec &v1, const Vec &v2);
     CUDA_CALLABLE_MEMBER friend Vec operator*(const Vec & v1, const Vec & v2);
-
     CUDA_CALLABLE_MEMBER friend Vec operator/(const Vec & v, const double x);
-
     CUDA_CALLABLE_MEMBER friend Vec operator/(const Vec & v1, const Vec & v2);
 
     friend std::ostream & operator << (std::ostream & strm, const Vec & v);
 
     CUDA_CALLABLE_MEMBER void print();
-
     CUDA_CALLABLE_MEMBER double norm() const;
-
     CUDA_CALLABLE_MEMBER double sum() const;
-
     CUDA_CALLABLE_MEMBER Vec normalized() const;
 
 private:
 };
+
+class ComplexVec {
+public:
+
+    double data[3] = { 0 }; // initialize data to 0
+
+    CUDA_CALLABLE_MEMBER ComplexVec();
+    CUDA_CALLABLE_MEMBER ComplexVec(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec(cuComplex x, cuComplex y, cuComplex z);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator=(const Vec & v);
+
+    CUDA_CALLABLE_MEMBER ComplexVec & operator+=(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator-=(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator*=(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator/=(const ComplexVec & v);
+
+    CUDA_CALLABLE_MEMBER ComplexVec operator-() const; // returns the negative -z = -a -bi
+    CUDA_CALLABLE_MEMBER cuComplex & operator [] (int n);
+    CUDA_CALLABLE_MEMBER const cuComplex & operator [] (int n) const;
+
+    CUDA_CALLABLE_MEMBER friend ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2);
+    CUDA_CALLABLE_MEMBER friend ComplexVec operator-(const ComplexVec & v1, const ComplexVec & v2);
+    CUDA_CALLABLE_MEMBER friend ComplexVec operator*(const ComplexVec & v1, const ComplexVec & v2);
+    CUDA_CALLABLE_MEMBER friend ComplexVec operator/(const ComplexVec & v1, const ComplexVec & v2);
+
+    CUDA_CALLABLE_MEMBER friend bool operator==(const ComplexVec & v1, const ComplexVec & v2);
+    CUDA_CALLABLE_MEMBER friend bool operator<(const ComplexVec &v1, const ComplexVec &v2);
+    CUDA_CALLABLE_MEMBER friend bool operator<(const ComplexVec &v1, const ComplexVec &v2);
+
+    friend std::ostream & operator << (std::ostream & strm, const ComplexVec & v);
+
+    CUDA_CALLABLE_MEMBER void print();
+    CUDA_CALLABLE_MEMBER cuComplex sum() const;
+    CUDA_CALLABLE_MEMBER ComplexVec normalized() const;
+
+private:
+};
+
 
 CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b);
 CUDA_CALLABLE_MEMBER Vec cross(const Vec &v1, const Vec &v2);

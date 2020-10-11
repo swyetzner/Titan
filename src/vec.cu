@@ -139,9 +139,17 @@ Vec operator*(const Vec & v, const double x) {
     return x * v;
 }
 
+bool operator==(const Vec & v1, const Vec & v2) {
+    return (v1[0] == v2[0] && v1[1] == v2[1] && v1[2] == v2[2]);
+}
+
 bool operator<(const Vec &v1, const Vec &v2) {
     return ((v1[0] < v2[0]) || (v1[0] <= v2[0] && v1[1] < v2[1])
             || (v1[0] <= v2[0] && v1[1] <= v2[1] && v1[2] < v2[2]));
+}
+
+bool operator>(const Vec &v1, const Vec &v2) {
+    return !(v1<v2)
 }
 
 Vec operator*(const Vec & v1, const Vec & v2) {
@@ -184,3 +192,21 @@ CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b) {
 CUDA_CALLABLE_MEMBER Vec cross(const Vec &v1, const Vec &v2) {
     return Vec(v1[1] * v2[2] - v1[2] * v2[1], v2[0] * v1[2] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
