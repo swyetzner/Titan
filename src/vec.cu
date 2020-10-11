@@ -75,8 +75,31 @@ Vec::Vec(double x, double y, double z) {
     data[2] = z;
 } // initialization from x, y, and z values
 
+Vec::Vec & operator=(const Vec & v) {
+    if (this == &v) {
+        return *this;
+    }
 
+    data[0] = v.data[0];
+    data[1] = v.data[1];
+    data[2] = v.data[2];
 
+    return *this;
+}
+
+Vec::Vec & operator+=(const Vec & v) {
+    data[0] += v.data[0];
+    data[1] += v.data[1];
+    data[2] += v.data[2];
+    return *this;
+}
+
+Vec::Vec & operator-=(const Vec & v) {
+    data[0] -= v.data[0];
+    data[1] -= v.data[1];
+    data[2] -= v.data[2];
+    return *this;
+}
 //
 //
 //
