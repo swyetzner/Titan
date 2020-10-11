@@ -75,7 +75,7 @@ Vec::Vec(double x, double y, double z) {
     data[2] = z;
 } // initialization from x, y, and z values
 
-Vec::Vec & operator=(const Vec & v) {
+Vec & Vec::operator=(const Vec & v) {
     if (this == &v) {
         return *this;
     }
@@ -87,18 +87,40 @@ Vec::Vec & operator=(const Vec & v) {
     return *this;
 }
 
-Vec::Vec & operator+=(const Vec & v) {
+Vec & Vec::operator+=(const Vec & v) {
     data[0] += v.data[0];
     data[1] += v.data[1];
     data[2] += v.data[2];
     return *this;
 }
 
-Vec::Vec & operator-=(const Vec & v) {
+Vec & Vec::operator-=(const Vec & v) {
     data[0] -= v.data[0];
     data[1] -= v.data[1];
     data[2] -= v.data[2];
     return *this;
+}
+
+Vec Vec::operator-() const{
+    return Vec(-data[0], -data[1], -data[2]);
+}
+
+double & Vec::operator [] (int n) {
+    if (n < 0 || n >= 3) {
+        printf("%s\n", "Out of bounds!");
+        return data[0];
+    } else {
+        return data[n];
+    }
+}
+
+const double & Vec::operator [] (int n) const {
+    if (n < 0 || n >= 3) {
+        printf("%s\n", "Out of bounds!");
+        return data[0];
+    } else {
+        return data[n];
+    }
 }
 //
 //
