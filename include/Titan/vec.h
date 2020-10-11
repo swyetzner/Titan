@@ -72,22 +72,13 @@ public:
 
     friend std::ostream & operator << (std::ostream & strm, const Vec & v);
 
-    CUDA_CALLABLE_MEMBER void print() {
-        printf("(%3f, %3f, %3f)\n", data[0], data[1], data[2]);
-    }
+    CUDA_CALLABLE_MEMBER void print();
 
-    CUDA_CALLABLE_MEMBER double norm() const {
-        return sqrt(pow(data[0], 2) + pow(data[1], 2) + pow(data[2], 2));
-    } // gives vector norm
+    CUDA_CALLABLE_MEMBER double norm();
 
-    CUDA_CALLABLE_MEMBER double sum() const {
-        return data[0] + data[1] + data[2];
-    } // sums all components of the vector
+    CUDA_CALLABLE_MEMBER double sum() const;
 
-    CUDA_CALLABLE_MEMBER Vec normalized() const {
-        double l = norm();
-        return l > 0 ? (*this)/l : (*this);
-    }
+    CUDA_CALLABLE_MEMBER Vec normalized() const;
 
 private:
 };
