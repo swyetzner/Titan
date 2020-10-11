@@ -301,13 +301,14 @@ const cuDoubleComplex & ComplexVec::operator [] (int n) const {
     }
 }
 
+/* WORK IN PROGRESS
 bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 	bool real = (cuCreal(v1[0]) == cuCreal(v2[0]) && cuCreal(v1[1]) == cuCreal(v2[1]) && cuCreal(v1[2]) == cuCreal(v2[2]));
 	bool imaj = (cuCimaj(v1[0]) == cuCimaj(v2[0]) && cuCimaj(v1[1]) == cuCimaj(v2[1]) && cuCimaj(v1[2]) == cuCimaj(v2[2]));
 	return (real && imaj);
 }
 
-/* WORK IN PROGRESS
+
 
 ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2) {
 	return v1+=v2;
@@ -329,11 +330,11 @@ std::ostream & operator << (std::ostream & strm, const ComplexVec & v) {
 	return strm << "(" << cuCreal(v[0]) << " + " << cuCimag(v[0]) << "i" << ", " << cuCreal(v[1]) << " + " << cuCimaj(v[0]) << "i" << ", " << cuCreal(v[2]) << " + " << cuCimag(v[0]) << "i)";
 }
 
-*/
+
 void ComplexVec::print() {
 	printf("(%3f + %3fi, %3f + %3fi, %3f + %3fi)\n", cuCreal(data[0]),cuCimaj(data[0]), cuCreal(data[1]),cuCimaj(data[1]), cuCreal(data[2]),cuCimaj(data[2]));
 }
-
+*/
 cuDoubleComplex ComplexVec::sum() const {
 	return make_cuDoubleComplex(cuCadd(cuCadd(data[0],data[1],data[2])));
 }
