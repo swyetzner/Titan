@@ -288,7 +288,7 @@ cuComplex & ComplexVec::operator [] (int n) {
     }
 }
 
-CUDA_CALLABLE_MEMBER const cuDoubleComplex & operator [] (int n) const {
+const cuDoubleComplex & ComplexVec::operator [] (int n) const {
 	if (n < 0 || n >= 3) {
         printf("%s\n", "Out of bounds!");
         return data[0];
@@ -297,7 +297,7 @@ CUDA_CALLABLE_MEMBER const cuDoubleComplex & operator [] (int n) const {
     }
 }
 
-CUDA_CALLABLE_MEMBER friend bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
+bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 	bool real = (cuCreal(v1[0]) == cuCreal(v2[0]) && cuCreal(v1[1]) == cuCreal(v2[1]) && cuCreal(v1[2]) == cuCreal(v2[2]));
 	bool imaj = (cuCimaj(v1[0]) == cuCimaj(v2[0]) && cuCimaj(v1[1]) == cuCimaj(v2[1]) && cuCimaj(v1[2]) == cuCimaj(v2[2]));
 	return (real && imaj);
