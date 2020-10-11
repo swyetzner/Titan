@@ -258,24 +258,28 @@ ComplexVec & ComplexVec::operator+=(double x) {
 	data[0] = cuCadd(data[0],make_cuDoubleComplex(x, 0););
 	data[1] = cuCadd(data[1],make_cuDoubleComplex(x, 0););
 	data[2] = cuCadd(data[2],make_cuDoubleComplex(x, 0););
+	return *this;
 }
 
 ComplexVec & ComplexVec::operator-=(double x) {
 	data[0] = cuCsub(data[0],make_cuDoubleComplex(x, 0););
 	data[1] = cuCsub(data[1],make_cuDoubleComplex(x, 0););
 	data[2] = cuCsub(data[2],make_cuDoubleComplex(x, 0););
+	return *this;
 }
 
 ComplexVec & ComplexVec::operator*=(double x) {
 	data[0] = cuCmul(data[0],make_cuDoubleComplex(x, 0););
 	data[1] = cuCmul(data[1],make_cuDoubleComplex(x, 0););
 	data[2] = cuCmul(data[2],make_cuDoubleComplex(x, 0););
+	return *this;
 }
 
 ComplexVec & ComplexVec::operator/=(double x) {
 	data[0] = cuCdiv(data[0],make_cuDoubleComplex(x, 0););
 	data[1] = cuCdiv(data[1],make_cuDoubleComplex(x, 0););
 	data[2] = cuCdiv(data[2],make_cuDoubleComplex(x, 0););
+	return *this;
 }
 
 //CUDA_CALLABLE_MEMBER ComplexVec operator-() const; // returns the negative -z = -a -bi
