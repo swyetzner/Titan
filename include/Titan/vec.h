@@ -74,7 +74,7 @@ public:
 
     CUDA_CALLABLE_MEMBER void print();
 
-    CUDA_CALLABLE_MEMBER double norm();
+    CUDA_CALLABLE_MEMBER double norm() const;
 
     CUDA_CALLABLE_MEMBER double sum() const;
 
