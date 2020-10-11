@@ -123,19 +123,19 @@ const double & Vec::operator [] (int n) const {
     }
 }
 
-Vec Vec::operator+(const Vec & v1, const Vec & v2) {
+Vec operator+(const Vec & v1, const Vec & v2) {
     return Vec(v1.data[0] + v2.data[0], v1.data[1] + v2.data[1], v1.data[2] + v2.data[2]);
 }
 
-Vec Vec::operator-(const Vec & v1, const Vec & v2) {
+Vec operator-(const Vec & v1, const Vec & v2) {
     return Vec(v1.data[0] - v2.data[0], v1.data[1] - v2.data[1], v1.data[2] - v2.data[2]);
 }
 
-Vec Vec::operator*(const double x, const Vec & v) {
+Vec operator*(const double x, const Vec & v) {
     return Vec(v.data[0] * x, v.data[1] * x, v.data[2] * x);
 }
 
-Vec Vec::operator*(const Vec & v, const double x) {
+Vec operator*(const Vec & v, const double x) {
     return x * v;
 } // double times Vec
 //
