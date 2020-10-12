@@ -6,8 +6,8 @@
 //  Copyright © 2020 Salvy. All rights reserved.
 //
 
-#ifndef VEC_H
-#define VEC_H
+#ifndef COMPLEXVEC_H
+#define COMPLEXVEC_H
 
 #ifdef __CUDACC__
 #define CUDA_CALLABLE_MEMBER __host__ __device__
@@ -27,7 +27,6 @@
 #include <math.h>
 #include <iostream>
 #include <cmath>
-
 #include <cuComplex.h>
 
 class ComplexVec {
