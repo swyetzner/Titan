@@ -115,7 +115,7 @@ const cuDoubleComplex & ComplexVec::operator [] (int n) const {
         return data[n];
     }
 }
-
+/* WORK IN PROGRESS
 bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 	bool real = (cuCreal(v1[0]) == cuCreal(v2[0]) && cuCreal(v1[1]) == cuCreal(v2[1]) && cuCreal(v1[2]) == cuCreal(v2[2]));
 	bool imaj = (cuCimaj(v1[0]) == cuCimaj(v2[0]) && cuCimaj(v1[1]) == cuCimaj(v2[1]) && cuCimaj(v1[2]) == cuCimaj(v2[2]));
@@ -123,8 +123,6 @@ bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 }
 
 
-
-/* WORK IN PROGRESS
 ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2) {
 	return v1+=v2;
 }
