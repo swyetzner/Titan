@@ -70,7 +70,4 @@ private:
 };
 
 
-CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b);
-CUDA_CALLABLE_MEMBER Vec cross(const Vec &v1, const Vec &v2);
-
 #endif

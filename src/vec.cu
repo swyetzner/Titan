@@ -191,6 +191,3 @@ Vec Vec::normalized() const {
 
 
 
-
-
-
