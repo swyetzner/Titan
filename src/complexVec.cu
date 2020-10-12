@@ -116,7 +116,6 @@ const cuDoubleComplex & ComplexVec::operator [] (int n) const {
     }
 }
 
-/* WORK IN PROGRESS
 bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 	bool real = (cuCreal(v1[0]) == cuCreal(v2[0]) && cuCreal(v1[1]) == cuCreal(v2[1]) && cuCreal(v1[2]) == cuCreal(v2[2]));
 	bool imaj = (cuCimaj(v1[0]) == cuCimaj(v2[0]) && cuCimaj(v1[1]) == cuCimaj(v2[1]) && cuCimaj(v1[2]) == cuCimaj(v2[2]));
@@ -125,6 +124,7 @@ bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
 
 
 
+/* WORK IN PROGRESS
 ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2) {
 	return v1+=v2;
 }
@@ -154,11 +154,3 @@ cuDoubleComplex ComplexVec::sum() const {
 	return make_cuDoubleComplex(cuCadd(cuCadd(data[0],data[1],data[2])));
 }
 */
-
-CUDA_CALLABLE_MEMBER double dot(const ComplexVec & a, const ComplexVec & b) {
-    return (a * b).sum();
-}
-
-CUDA_CALLABLE_MEMBER Vec cross(const ComplexVec &v1, const ComplexVec &v2) {
-    return Vec(v1[1] * v2[2] - v1[2] * v2[1], v2[0] * v1[2] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
-}
