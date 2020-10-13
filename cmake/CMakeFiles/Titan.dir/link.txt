@@ -1,3 +1,0 @@
-/usr/bin/ar qc libTitan.a  CMakeFiles/Titan.dir/src/vec.cu.o CMakeFiles/Titan.dir/src/complexVec.cu.o CMakeFiles/Titan.dir/src/sim.cu.o CMakeFiles/Titan.dir/src/shader.cpp.o CMakeFiles/Titan.dir/src/mass.cu.o CMakeFiles/Titan.dir/src/spring.cu.o CMakeFiles/Titan.dir/src/fourier.cu.o CMakeFiles/Titan.dir/src/object.cu.o CMakeFiles/Titan.dir/src/graphics.cpp.o
-/usr/bin/ar q  libTitan.a  CMakeFiles/Titan.dir/cmake_device_link.o
-/usr/bin/ranlib libTitan.a
