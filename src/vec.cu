@@ -185,8 +185,9 @@ Vec Vec::normalized() const {
     return l > 0 ? (*this)/l : (*this);
 }
 
-
-
+CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b) {
+    return (a * b).sum();
+}
 
 
 

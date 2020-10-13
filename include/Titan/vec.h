@@ -69,14 +69,15 @@ public:
 private:
 };
 
-template <class T,class R>
-CUDA_CALLABLE_MEMBER R dot(const T & a, const T & b) {
+CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b);
+/*
+CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b) {
     return (a * b).sum();
-}
+}*/
 
-template <class T, class R>
-CUDA_CALLABLE_MEMBER R cross(const T &v1, const T &v2) {
-    return Vec(v1[1] * v2[2] - v1[2] * v2[1], v2[0] * v1[2] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
+template <class T>
+CUDA_CALLABLE_MEMBER T cross(const T &v1, const T &v2) {
+    return T(v1[1] * v2[2] - v1[2] * v2[1], v2[0] * v1[2] - v1[0] * v2[2], v1[0] * v2[1] - v1[1] * v2[0]);
 }
 
 

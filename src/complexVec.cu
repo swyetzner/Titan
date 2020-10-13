@@ -116,40 +116,40 @@ const cuDoubleComplex & ComplexVec::operator [] (int n) const {
     }
 }
 
-/* WORK IN PROGRESS
 bool operator==(const ComplexVec & v1, const ComplexVec & v2) {
-	bool real = (cuCreal(v1[0]) == cuCreal(v2[0]) && cuCreal(v1[1]) == cuCreal(v2[1]) && cuCreal(v1[2]) == cuCreal(v2[2]));
-	bool imaj = (cuCimaj(v1[0]) == cuCimaj(v2[0]) && cuCimaj(v1[1]) == cuCimaj(v2[1]) && cuCimaj(v1[2]) == cuCimaj(v2[2]));
-	return (real && imaj);
+	return ((v1[0].x == v2[0].x && v1[1].x == v2[1].x && v1[2].x == v2[2].x) && (v1[0].y == v2[0].y && v1[1].y == v2[1].y && v1[2].y == v2[2].y));
 }
 
-
 ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2) {
-	return v1+=v2;
+	return ComplexVec(v1+v2);
 }
 
 ComplexVec operator-(const ComplexVec & v1, const ComplexVec & v2) {
-	return v1-=v2;
+	return ComplexVec(v1-v2);
 }
 
 ComplexVec operator*(const ComplexVec & v1, const ComplexVec & v2) {
-	return v1*=v2;
+	return ComplexVec(v1*v2);
 }
 
 ComplexVec operator/(const ComplexVec & v1, const ComplexVec & v2) {
-	return v1/=v2;
+	return ComplexVec(v1/v2);
 }
 
 std::ostream & operator << (std::ostream & strm, const ComplexVec & v) {
-	return strm << "(" << cuCreal(v[0]) << " + " << cuCimag(v[0]) << "i" << ", " << cuCreal(v[1]) << " + " << cuCimaj(v[0]) << "i" << ", " << cuCreal(v[2]) << " + " << cuCimag(v[0]) << "i)";
+	return strm << "(" << v[0].x << " + " << v[0].y << "i" << ", " << v[1].x << " + " << v[0].y << "i" << ", " << v[2].x << " + " << v[0].y << "i)";
 }
 
-
 void ComplexVec::print() {
-	printf("(%3f + %3fi, %3f + %3fi, %3f + %3fi)\n", cuCreal(data[0]),cuCimaj(data[0]), cuCreal(data[1]),cuCimaj(data[1]), cuCreal(data[2]),cuCimaj(data[2]));
+	printf("(%3f + %3fi, %3f + %3fi, %3f + %3fi)\n", data[0].x, data[0].y, data[1].x, data[1].y, data[2].x, data[2].y);
 }
 
 cuDoubleComplex ComplexVec::sum() const {
-	return make_cuDoubleComplex(cuCadd(cuCadd(data[0],data[1],data[2])));
+	return cuCadd(cuCadd(data[0],data[1]),data[2]);
 }
-*/
+
+
+CUDA_CALLABLE_MEMBER cuDoubleComplex dot(const ComplexVec & a, const ComplexVec & b) {
+    return (a * b).sum();
+}
+

@@ -68,5 +68,6 @@ public:
 private:
 };
 
+CUDA_CALLABLE_MEMBER cuDoubleComplex dot(const ComplexVec & a, const ComplexVec & b);
 
 #endif

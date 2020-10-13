@@ -7,12 +7,12 @@ set(CMAKE_CXX_STANDARD 14) # set C++ standard to C++11
 set(TITAN_SOURCE_DIR ${CMAKE_CURRENT_LIST_DIR}/src)
 set(TITAN_INCLUDE_DIR ${CMAKE_CURRENT_LIST_DIR}/include/Titan)
 
-set(TITAN_SOURCE_FILES ${TITAN_SOURCE_DIR}/vec.cu ${TITAN_SOURCE_DIR}/sim.cu ${TITAN_SOURCE_DIR}/shader.cpp
+set(TITAN_SOURCE_FILES ${TITAN_SOURCE_DIR}/vec.cu ${TITAN_SOURCE_DIR}/complexVec.cu ${TITAN_SOURCE_DIR}/sim.cu ${TITAN_SOURCE_DIR}/shader.cpp
         ${TITAN_SOURCE_DIR}/mass.cu ${TITAN_SOURCE_DIR}/spring.cu ${TITAN_SOURCE_DIR}/fourier.cu
         ${TITAN_SOURCE_DIR}/object.cu ${TITAN_SOURCE_DIR}/graphics.cpp)
 
 set(TITAN_HEADER_FILES ${TITAN_INCLUDE_DIR}/sim.h ${TITAN_INCLUDE_DIR}/mass.h ${TITAN_INCLUDE_DIR}/object.h
-        ${TITAN_INCLUDE_DIR}/spring.h ${TITAN_INCLUDE_DIR}/fourier.h ${TITAN_INCLUDE_DIR}/vec.h ${TITAN_INCLUDE_DIR}/graphics.h ${TITAN_INCLUDE_DIR}/shader.h
+        ${TITAN_INCLUDE_DIR}/spring.h ${TITAN_INCLUDE_DIR}/fourier.h ${TITAN_INCLUDE_DIR}/vec.h ${TITAN_INCLUDE_DIR}/complexVec.h ${TITAN_INCLUDE_DIR}/graphics.h ${TITAN_INCLUDE_DIR}/shader.h
         ${TITAN_INCLUDE_DIR}/stlparser.h)
 
 if (TITAN_SHARED_BUILD)
