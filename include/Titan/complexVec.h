@@ -28,6 +28,7 @@
 #include <iostream>
 #include <cmath>
 #include <cuComplex.h>
+#include <vec.h>
 
 class ComplexVec {
 public:
@@ -41,6 +42,8 @@ public:
 
     CUDA_CALLABLE_MEMBER ComplexVec & operator+=(const ComplexVec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator-=(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator-=(const Vec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator*=(const ComplexVec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator*=(const ComplexVec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator/=(const ComplexVec & v);
 
@@ -59,11 +62,18 @@ public:
     CUDA_CALLABLE_MEMBER friend ComplexVec operator*(const ComplexVec & v1, const ComplexVec & v2);
     CUDA_CALLABLE_MEMBER friend ComplexVec operator/(const ComplexVec & v1, const ComplexVec & v2);
 
+    CUDA_CALLABLE_MEMBER friend ComplexVec operator*(const ComplexVec & v1, const Vec & v2);
+
     friend std::ostream & operator << (std::ostream & strm, const ComplexVec & v);
 
     CUDA_CALLABLE_MEMBER void print();
     //CUDA_CALLABLE_MEMBER double norm() const;
     CUDA_CALLABLE_MEMBER cuDoubleComplex sum() const;
+
+    CUDA_CALLABLE_MEMBER ComplexVec exp();
+
+    CUDA_CALLABLE_MEMBER Vec real();
+    CUDA_CALLABLE_MEMBER Vec abs();
 
 private:
 };

@@ -63,6 +63,9 @@ public:
     void setAll();
     void toArray();
 
+    void getModeShapes(Fourier *f);
+    void clearFourierTransforms(Fourier *f);
+
     // Global constraints (can be rendered)
     void createPlane(const Vec & abc, double d ); // creates half-space ax + by + cz < d
     void createPlane(const Vec &abc, double d, double FRICTION_K, double FRICTION_S);  // creates half-space ax + by + cz < d

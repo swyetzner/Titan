@@ -48,6 +48,13 @@ ComplexVec & ComplexVec::operator+=(const ComplexVec & v) {
     return *this;
 }
 
+ComplexVec & ComplexVec::operator+=(const Vec & v) {
+    data[0] = cuCadd(data[0],make_cuDoubleComplex(v[0], 0));
+    data[1] = cuCadd(data[1],make_cuDoubleComplex(v[1], 0));
+    data[2] = cuCadd(data[2],make_cuDoubleComplex(v[2], 0));
+    return *this;
+}
+
 ComplexVec & ComplexVec::operator-=(const ComplexVec & v) {
 	data[0] = cuCsub(data[0],v.data[0]);
     data[1] = cuCsub(data[1],v.data[1]);
@@ -55,10 +62,24 @@ ComplexVec & ComplexVec::operator-=(const ComplexVec & v) {
     return *this;
 }
 
+ComplexVec & ComplexVec::operator-=(const Vec & v) {
+    data[0] = cuCsub(data[0], make_cuDoubleComplex(v.data[0], 0));
+    data[1] = cuCsub(data[1], make_cuDoubleComplex(v.data[1], 0));
+    data[2] = cuCsub(data[2], make_cuDoubleComplex(v.data[2], 0));
+    return *this;
+}
+
 ComplexVec & ComplexVec::operator*=(const ComplexVec & v) {
 	data[0] = cuCmul(data[0],v.data[0]);
     data[1] = cuCmul(data[1],v.data[1]);
     data[2] = cuCmul(data[2],v.data[2]);
+    return *this;
+}
+
+ComplexVec & ComplexVec::operator*=(const Vec & v) {
+    data[0] = cuCmul(data[0],make_cuDoubleComplex(v[0], 0));
+    data[1] = cuCmul(data[1],make_cuDoubleComplex(v[1], 0));
+    data[2] = cuCmul(data[2],make_cuDoubleComplex(v[2], 0));
     return *this;
 }
 
@@ -124,12 +145,20 @@ ComplexVec operator+(const ComplexVec & v1, const ComplexVec & v2) {
 	return ComplexVec(v1+v2);
 }
 
+ComplexVec operator+(const ComplexVec & v1, const Vec & v2) {
+    return ComplexVec(v1+v2);
+}
+
 ComplexVec operator-(const ComplexVec & v1, const ComplexVec & v2) {
 	return ComplexVec(v1-v2);
 }
 
 ComplexVec operator*(const ComplexVec & v1, const ComplexVec & v2) {
 	return ComplexVec(v1*v2);
+}
+
+ComplexVec operator*(const ComplexVec & v1, const Vec & v2) {
+    return ComplexVec(v1*v2);
 }
 
 ComplexVec operator/(const ComplexVec & v1, const ComplexVec & v2) {
@@ -148,6 +177,32 @@ cuDoubleComplex ComplexVec::sum() const {
 	return cuCadd(cuCadd(data[0],data[1]),data[2]);
 }
 
+ComplexVec ComplexVec::exp() {
+    cuDoubleComplex dataNew[3] = { 0 };
+    for (int i=0; i<3; i++) {
+        double s, c, m;
+        sincos(data[i].y, &s, %c);
+        m = exp(data[i].x);
+        dataNew[i] = make_cuDoubleComplex(m*c, m*s);
+    }
+    return ComplexVec(dataNew[0], dataNew[1], dataNew[2]);
+}
+
+Vec ComplexVec::realSign() {
+    double dataNew[3] = { 0 };
+    for (int i=0; i<3; i++) {
+        dataNew[i] = data[i].x < 0 ? -1 : 1;
+    }
+    return Vec(dataNew[0], dataNew[1], dataNew[2]);
+}
+
+Vec ComplexVec::abs() {
+    double dataNew[3] = { 0 };
+    for (int i = 0; i<3; i++) {
+        dataNew[i] = sqrt(data[i].x*data[i].x + data[i].y*data[i].y);
+    }
+    return Vec(dataNew[0], dataNew[1], dataNew[2]);
+}
 
 CUDA_CALLABLE_MEMBER cuDoubleComplex dot(const ComplexVec & a, const ComplexVec & b) {
     return (a * b).sum();
