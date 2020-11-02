@@ -41,10 +41,11 @@ public:
     CUDA_CALLABLE_MEMBER ComplexVec & operator=(const ComplexVec & v);
 
     CUDA_CALLABLE_MEMBER ComplexVec & operator+=(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator+=(const Vec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator-=(const ComplexVec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator-=(const Vec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator*=(const ComplexVec & v);
-    CUDA_CALLABLE_MEMBER ComplexVec & operator*=(const ComplexVec & v);
+    CUDA_CALLABLE_MEMBER ComplexVec & operator*=(const Vec & v);
     CUDA_CALLABLE_MEMBER ComplexVec & operator/=(const ComplexVec & v);
 
     CUDA_CALLABLE_MEMBER ComplexVec & operator+=(double x);
@@ -72,7 +73,7 @@ public:
 
     CUDA_CALLABLE_MEMBER ComplexVec exp();
 
-    CUDA_CALLABLE_MEMBER Vec real();
+    CUDA_CALLABLE_MEMBER Vec realSign();
     CUDA_CALLABLE_MEMBER Vec abs();
 
 private:

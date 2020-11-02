@@ -180,9 +180,9 @@ cuDoubleComplex ComplexVec::sum() const {
 ComplexVec ComplexVec::exp() {
     cuDoubleComplex dataNew[3] = { 0 };
     for (int i=0; i<3; i++) {
-        double s, c, m;
-        sincos(data[i].y, &s, %c);
-        m = exp(data[i].x);
+        double s = 0, c = 0, m = 0;
+        sincos(data[i].y, &s, &c);
+        m = std::exp(data[i].x);
         dataNew[i] = make_cuDoubleComplex(m*c, m*s);
     }
     return ComplexVec(dataNew[0], dataNew[1], dataNew[2]);
