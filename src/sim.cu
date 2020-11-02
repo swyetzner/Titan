@@ -2383,7 +2383,7 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
 
     int low_band = int(round(f->lowerFreq / fres));
 
-    f->expTerms = new std::complex<double>[bands];
+    f->expTerms = new std::complex<double>[f->bands];
     f->frequencies = new double[f->bands];
 
     // Initialize 2d array of complex vecs for each mass
