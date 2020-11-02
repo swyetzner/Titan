@@ -6,7 +6,7 @@
 #define TITAN_FOURIER_H
 
 #include "vec.h"
-
+#include "complexVec.h"
 #include <complex>
 
 class Fourier;

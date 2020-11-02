@@ -2368,8 +2368,8 @@ void Simulation::createDiscreteFourier(double uf, double lf, int b, int n) {
 }
 
 void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
+    double pi = atan(1.0) * 4;
     assert(f->upperFreq != 0);
-ses
     double ideal_ts = 1 / (2 * f->upperFreq);
     double real_ts = ceil(ideal_ts / ts) * ts;
     double fs = 1 / real_ts;
@@ -2384,29 +2384,21 @@ ses
     int low_band = int(round(f->lowerFreq / fres));
 
     f->expTerms = new std::complex<double>[bands];
-    f->frequencies = new double[bands];
-    for (int i=0; i < bands; i++) {
-        f->expTerms[i] = exp(std::complex<double>x(0, 2*pi*(low_band+i)/n));
-        f->frequencies[i] = 2*pi*(low_band+i)/n;
-    }
-
-
+    f->frequencies = new double[f->bands];
 
     // Initialize 2d array of complex vecs for each mass
     // and 2d array of real vecs for simplified mode shapes
     f->massComplexArray = new ComplexVec*[f->bands];
     f->modeShapes = new Vec*[f->bands];
+    f->expTerms = new ComplexVec[f->bands];
     for (int i = 0; i < f->bands; i++) {
         f->massComplexArray[i] = new ComplexVec[nmasses];
         f->modeShapes[i] = new Vec[nmasses];
-    }
 
-    double pi = atan(1.0) * 4;
-
-    f->expTerms = new ComplexVec[f->bands];
-    for (int i=0; i < f->bands; i++) {
         double x = 2*pi*(i+low_band)/(f->n/2);
         f->expTerms[i] = ComplexVec(make_cuDoubleComplex(0, x), make_cuDoubleComplex(0, x), make_cuDoubleComplex(0, x)).exp();
+
+        f->frequencies[i] = f->upperFreq*2*pi*(low_band+i)/(f->n/2);
     }
 }
 
