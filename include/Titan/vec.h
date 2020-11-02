@@ -44,6 +44,11 @@ public:
     CUDA_DEVICE void atomicVecAdd(const Vec & v);
     CUDA_DEVICE void atomicVecExch(const Vec &v);
 
+    CUDA_CALLABLE_MEMBER Vec & operator+=(double x);
+    CUDA_CALLABLE_MEMBER Vec & operator-=(double x);
+    CUDA_CALLABLE_MEMBER Vec & operator*=(double x);
+    CUDA_CALLABLE_MEMBER Vec & operator/=(double x);
+
     CUDA_CALLABLE_MEMBER Vec operator-() const;
     CUDA_CALLABLE_MEMBER double & operator [] (int n);
     CUDA_CALLABLE_MEMBER const double & operator [] (int n) const;

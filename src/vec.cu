@@ -192,3 +192,31 @@ CUDA_CALLABLE_MEMBER double dot(const Vec & a, const Vec & b) {
 
 
 
+
+Vec & Vec::operator+=(double x) {
+    data[0] = data[0]+=x;
+    data[1] = data[1]+=x;
+    data[2] = data[2]+=x;
+    return *this;
+}
+
+Vec & Vec::operator-=(double x) {
+    data[0] = data[0]-=x;
+    data[1] = data[1]-=x;
+    data[2] = data[2]-=x;
+    return *this;
+}
+
+Vec & Vec::operator*=(double x) {
+    data[0] = data[0]*=x;
+    data[1] = data[0]*=x;
+    data[2] = data[0]*=x;
+    return *this;
+}
+
+Vec & Vec::operator/=(double x) {
+    data[0] = data[0]/=x;
+    data[1] = data[0]/=x;
+    data[2] = data[0]/=x;
+    return *this;
+}
