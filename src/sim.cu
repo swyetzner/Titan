@@ -1510,7 +1510,11 @@ __global__ void discreteFourierTransform(CUDA_MASS ** masses, CUDA_FOURIER * f, 
 
     if (i < size) {
         CUDA_MASS &mass = *masses[i];
-
+        Vec curPos = mass.pos;
+        for (int j=0; j<f->bands; j++) {
+            f->massComplexArray[j][i] += curPos;
+            f->massComplexArray[j][i] *= f->expTerms[j];
+        }
     }
 }
 
@@ -2364,8 +2368,8 @@ void Simulation::createDiscreteFourier(double uf, double lf, int b, int n) {
 }
 
 void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
+    double pi = atan(1.0) * 4;
     assert(f->upperFreq != 0);
-
     double ideal_ts = 1 / (2 * f->upperFreq);
     double real_ts = ceil(ideal_ts / ts) * ts;
     double fs = 1 / real_ts;
@@ -2379,12 +2383,43 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
 
     int low_band = int(round(f->lowerFreq / fres));
 
-    // Initialize 2d array of complex numbers for each mass
-    f->massComplexArray = new std::complex<double>*[nmasses];
-    for (int i = 0; i < nmasses; i++) {
-        f->massComplexArray[i] = new std::complex<double>[f->bands];
+    f->expTerms = new ComplexVec[f->bands];
+    f->frequencies = new double[f->bands];
+
+    // Initialize 2d array of complex vecs for each mass
+    // and 2d array of real vecs for simplified mode shapes
+    f->massComplexArray = new ComplexVec*[f->bands];
+    f->modeShapes = new Vec*[f->bands];
+    f->expTerms = new ComplexVec[f->bands];
+    for (int i = 0; i < f->bands; i++) {
+        f->massComplexArray[i] = new ComplexVec[nmasses];
+        f->modeShapes[i] = new Vec[nmasses];
+
+        double x = 2*pi*(i+low_band)/(f->n/2);
+        f->expTerms[i] = ComplexVec(make_cuDoubleComplex(0, x), make_cuDoubleComplex(0, x), make_cuDoubleComplex(0, x)).exp();
+
+        f->frequencies[i] = f->upperFreq*2*pi*(low_band+i)/(f->n/2);
     }
 }
+
+void Simulation::getModeShapes(Fourier *f){
+    int nmasses = masses.size();
+    for (int i = 0; i < nmasses; i++) {
+        for (int j = 0; j < f->bands; j++) {
+            f->modeShapes[j][i] = f->massComplexArray[j][i].abs()*f->massComplexArray[j][i].realSign();
+        }
+    }
+}
+
+void Simulation::clearFourierTransforms(Fourier *f) {
+    int nmasses = masses.size();
+    for (int i = 0; i < nmasses; i++) {
+        for (int j = 0; j < f->bands; j++) {
+            f->massComplexArray[j][i] *= 0;
+        }
+    }
+}
+
 
 void Simulation::clearConstraints() { // clears global constraints only
     this -> constraints.clear();

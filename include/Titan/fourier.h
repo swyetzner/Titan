@@ -6,7 +6,7 @@
 #define TITAN_FOURIER_H
 
 #include "vec.h"
-
+#include "complexVec.h"
 #include <complex>
 
 class Fourier;
@@ -20,8 +20,10 @@ struct CUDA_FOURIER {
     double lowerFreq;
     int bands;
     int n;
-
-    std::complex<double> ** massComplexArray;
+    ComplexVec *expTerms;
+    double *frequencies;
+    Vec ** modeShapes;
+    ComplexVec ** massComplexArray;
 };
 
 class Fourier {
@@ -34,7 +36,10 @@ public:
     double ts; // Derived
     double last_recorded;
 
-    std::complex<double> ** massComplexArray;
+    ComplexVec *expTerms;
+    double *frequencies;
+    Vec ** modeShapes;
+    ComplexVec ** massComplexArray;
 
     Fourier() = default;
     Fourier(double uf, double lf, int b);
