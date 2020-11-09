@@ -8,6 +8,7 @@
 #include "vec.h"
 #include "complexVec.h"
 #include <complex>
+#include <vector>
 
 class Fourier;
 struct CUDA_FOURIER;
@@ -20,6 +21,7 @@ struct CUDA_FOURIER {
     double lowerFreq;
     int bands;
     int n;
+    int n_count;
     ComplexVec *expTerms;
     double *frequencies;
     Vec ** modeShapes;
@@ -33,6 +35,7 @@ public:
     double lowerFreq;
     int bands;
     int n; // Derived
+    int n_count;
     double ts; // Derived
     double last_recorded;
 

@@ -11,10 +11,9 @@
 // COMPLEX VECTOR
 
 ComplexVec::ComplexVec() {
-	cuDoubleComplex z = make_cuDoubleComplex(0, 0);
-    data[0] = z;
-    data[1] = z;
-   	data[2] = z;
+    data[0] = make_cuDoubleComplex(0, 0);
+    data[1] = make_cuDoubleComplex(0, 0);
+   	data[2] = make_cuDoubleComplex(0, 0);
 } // default
 
 ComplexVec::ComplexVec(const ComplexVec & v) {

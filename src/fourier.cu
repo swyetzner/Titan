@@ -21,10 +21,12 @@ void Fourier::operator=(CUDA_FOURIER & fourier) {
     lowerFreq = fourier.lowerFreq;
     bands = fourier.bands;
     n = fourier.n;
+    n_count = fourier.n_count;
     expTerms = fourier.expTerms;
     frequencies = fourier.frequencies;
     massComplexArray = fourier.massComplexArray;
     modeShapes = fourier.modeShapes;
+    expTerms = fourier.expTerms;
 }
 
 CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
@@ -32,8 +34,10 @@ CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
     lowerFreq = fourier.lowerFreq;
     bands = fourier.bands;
     n = fourier.n;
+    n_count = fourier.n_count;
     expTerms = fourier.expTerms;
     frequencies = fourier.frequencies;
     massComplexArray = fourier.massComplexArray;
     modeShapes = fourier.modeShapes;
+    expTerms = fourier.expTerms;
 }
