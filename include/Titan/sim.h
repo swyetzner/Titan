@@ -132,7 +132,7 @@ public:
     std::vector<Spring *> springs;
     std::vector<Container *> containers;
     std::vector<ContactPlane *> planes;
-    std::vector<Fourier *> fouriers;
+    Fourier * fourier;
 
     Vec global; // global force
 
@@ -187,7 +187,6 @@ private:
     CUDA_GLOBAL_CONSTRAINTS d_constraints;
     bool update_constraints;
 
-    thrust::device_vector<CUDA_FOURIER> d_fouriers;
     void deriveFourierParameters(Fourier * f, double ts, int nmasses);
 
     void updateCudaParameters();
@@ -197,10 +196,12 @@ private:
     CUDA_MASS ** massToArray();
     CUDA_SPRING ** springToArray();
     void constraintsToArray();
+    void fourierToArray();
 
     void massFromArray();
     void springFromArray();
     void constraintsFromArray();
+    void fourierFromArray();
     void fromArray();
 
     std::thread gpu_thread;

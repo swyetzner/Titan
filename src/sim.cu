@@ -779,6 +779,7 @@ void Simulation::getAll() {
 
     massFromArray(); // TODO make a note of this
     springFromArray();
+    fourierFromArray();
 }
 
 void Simulation::set(Container * c) {
@@ -890,6 +891,7 @@ void Simulation::setAll() {
         createSpringPointers<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(thrust::raw_pointer_cast(d_springs.data()), d_data, springs.size());
         gpuErrchk(cudaFree(d_data));
     }
+    fourierToArray();
 }
 
 
@@ -1052,9 +1054,30 @@ CUDA_SPRING ** Simulation::springToArray() {
 //    }
 //}
 
+void Simulation::fourierToArray() {
+
+    CUDA_FOURIER * d_temp;
+    gpuErrchk(cudaMalloc((void **)& d_temp, sizeof(*d_temp)));
+    d_fourier = d_temp;
+
+    ComplexVec * a_temp;
+    gpuErrchk(cudaMalloc((void **)& a_temp, sizeof(*a_temp) * fourier->bands * masses.size()));
+
+    d_temp->massComplexArray = a_temp;
+    gpuErrchk(cudaMemcpy(d_temp, fourier, sizeof(*d_temp), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(a_temp, fourier->massComplexArray, sizeof(*a_temp), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(&(d_temp->massComplexArray), &a_temp, sizeof(d_temp->massComplexArray), cudaMemcpyHostToDevice));
+
+    //createFourierLink<<<1,1>>>(d_fourier, a_temp);
+
+    // Copy ComplexVec array pointer to device
+
+}
+
 void Simulation::toArray() {
     CUDA_MASS ** d_mass = massToArray(); // must come first
     CUDA_SPRING ** d_spring = springToArray();
+    fourierToArray();
 }
 
 __global__ void fromMassPointers(CUDA_MASS ** d_mass, CUDA_MASS * data, int size) {
@@ -1165,10 +1188,20 @@ void Simulation::constraintsFromArray() {
     //
 }
 
+void Simulation::fourierFromArray() {
+    CUDA_FOURIER *h_fourier;
+    gpuErrchk(cudaMemcpy(h_fourier, d_fourier, sizeof(h_fourier), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(h_fourier->massComplexArray, d_fourier->massComplexArray,
+            sizeof(d_fourier->massComplexArray), cudaMemcpyHostToDevice));
+
+    *fourier = *h_fourier;
+}
+
 void Simulation::fromArray() {
     massFromArray();
     springFromArray();
     constraintsFromArray();
+    fourierFromArray();
 }
 
 void Simulation::rebalanceMasses(double m) {
@@ -1524,8 +1557,8 @@ __global__ void discreteFourierTransform(CUDA_MASS ** masses, CUDA_FOURIER * f, 
             }
              */
 
-            f->massComplexArray[j][i] += curPos;
-            f->massComplexArray[j][i] *= f->expTerms[j];
+            //f->massComplexArray[j][i] += curPos;
+            //f->massComplexArray[j][i] *= f->expTerms[j];
 
             //printf("PAIL: %i\n%i\n", sizeof(f->massComplexArray), sizeof(f->massComplexArray[0]));
             /*
@@ -1666,7 +1699,6 @@ void Simulation::step(double size) {
         update_constraints = false;
         toArray();
 
-        d_fourier = thrust::raw_pointer_cast(d_fouriers.data());
         d_mass = thrust::raw_pointer_cast(d_masses.data());
         d_spring = thrust::raw_pointer_cast(d_springs.data());
         /*
@@ -1700,14 +1732,14 @@ void Simulation::step(double size) {
         stepped += dt;
     }
 
-    for (Fourier * f : fouriers) {
-        if (T - f->last_recorded > f->ts && f->n_count < f->n) {
+    if (fourier) {
+        if (T - fourier->last_recorded > fourier->ts && fourier->n_count < fourier->n) {
             // RUN SDFT KERNEL
             discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier, masses.size());
             //if (f->massComplexArray)
             //    printf("YES ITS NOT NULL\n");
-            f->n_count++;
-            f->last_recorded = T;
+            fourier->n_count++;
+            fourier->last_recorded = T;
         }
     }
 
@@ -2389,8 +2421,7 @@ void Simulation::createDiscreteFourier(double uf, double lf, int b, int n) {
     Fourier  * new_fourier = new Fourier(uf, lf, b);
     assert(new_fourier->upperFreq != 0);
     deriveFourierParameters(new_fourier, dt, masses.size());
-    fouriers.push_back(new_fourier);
-    d_fouriers.push_back(CUDA_FOURIER(*new_fourier));
+    fourier = new_fourier;
     cout << "FOURIER ACTUALLY CREATED";
 }
 
@@ -2405,6 +2436,7 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
     f->upperFreq = 0.5 * fs;
     f->n = ceil(fs * f->bands / (f->upperFreq - f->lowerFreq));
     f->n_count = 0;
+    f->nmasses = nmasses;
 
     double fres = fs / f->n;
     f->bands = ceil((f->upperFreq - f->lowerFreq) / fres);

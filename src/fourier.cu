@@ -22,11 +22,17 @@ void Fourier::operator=(CUDA_FOURIER & fourier) {
     bands = fourier.bands;
     n = fourier.n;
     n_count = fourier.n_count;
+    nmasses = fourier.nmasses;
     expTerms = fourier.expTerms;
     frequencies = fourier.frequencies;
-    massComplexArray = fourier.massComplexArray;
     modeShapes = fourier.modeShapes;
     expTerms = fourier.expTerms;
+
+    for (int i = 0; i < bands; i++) {
+        for (int j = 0; j < nmasses; j++) {
+            massComplexArray[i][j] = fourier.massComplexArray[i*bands + j];
+        }
+    }
 }
 
 CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
@@ -35,9 +41,16 @@ CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
     bands = fourier.bands;
     n = fourier.n;
     n_count = fourier.n_count;
+    nmasses = fourier.nmasses;
     expTerms = fourier.expTerms;
     frequencies = fourier.frequencies;
-    massComplexArray = fourier.massComplexArray;
     modeShapes = fourier.modeShapes;
     expTerms = fourier.expTerms;
+
+    massComplexArray = new ComplexVec[bands * nmasses];
+    for (int i = 0; i < bands; i++) {
+        for (int j = 0; j < nmasses; j++) {
+            massComplexArray[i*bands + j] = fourier.massComplexArray[i][j];
+        }
+    }
 }

@@ -22,10 +22,11 @@ struct CUDA_FOURIER {
     int bands;
     int n;
     int n_count;
+    int nmasses;
     ComplexVec *expTerms;
     double *frequencies;
     Vec ** modeShapes;
-    ComplexVec ** massComplexArray;
+    ComplexVec * massComplexArray; // 1D array
 };
 
 class Fourier {
@@ -36,6 +37,7 @@ public:
     int bands;
     int n; // Derived
     int n_count;
+    int nmasses;
     double ts; // Derived
     double last_recorded;
 
@@ -47,7 +49,6 @@ public:
     Fourier() = default;
     Fourier(double uf, double lf, int b);
 
-private:
     void operator=(CUDA_FOURIER & fourier);
 };
 
