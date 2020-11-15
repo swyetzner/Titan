@@ -70,6 +70,7 @@ __global__ void createMassPointers(CUDA_MASS ** ptrs, CUDA_MASS * data, int size
 __global__ void computeSpringForces(CUDA_SPRING * device_springs, int num_springs, double t);
 __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL_CONSTRAINTS c, int num_masses);
 __global__ void discreteFourierTransform(CUDA_MASS ** d_mass, CUDA_FOURIER * f, int size);
+__global__ void testMassComplexArray(CUDA_FOURIER * f);
 
 bool Simulation::RUNNING;
 bool Simulation::STARTED;
@@ -1056,22 +1057,29 @@ CUDA_SPRING ** Simulation::springToArray() {
 
 void Simulation::fourierToArray() {
 
+    CUDA_FOURIER * d_fourier = new CUDA_FOURIER(*fourier);
     CUDA_FOURIER * d_temp;
-    gpuErrchk(cudaMalloc((void **)& d_temp, sizeof(*d_temp)));
-    d_fourier = d_temp;
+
+    gpuErrchk(cudaMalloc((void **)& d_temp, sizeof(CUDA_FOURIER)));
 
     ComplexVec * a_temp;
-    gpuErrchk(cudaMalloc((void **)& a_temp, sizeof(*a_temp) * fourier->bands * masses.size()));
+    ComplexVec * e_temp;
+    gpuErrchk(cudaMalloc((void **)& a_temp, sizeof(ComplexVec) * d_fourier->bands * masses.size()));
+    gpuErrchk(cudaMalloc((void **)& e_temp, sizeof(ComplexVec) * d_fourier->bands));
 
-    d_temp->massComplexArray = a_temp;
-    gpuErrchk(cudaMemcpy(d_temp, fourier, sizeof(*d_temp), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(a_temp, fourier->massComplexArray, sizeof(*a_temp), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(d_temp, d_fourier, sizeof(CUDA_FOURIER), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(a_temp, d_fourier->massComplexArray, sizeof(ComplexVec) * d_fourier->bands * d_fourier->nmasses, cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(e_temp, d_fourier->expTerms, sizeof(ComplexVec) * d_fourier->bands, cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(&(d_temp->massComplexArray), &a_temp, sizeof(d_temp->massComplexArray), cudaMemcpyHostToDevice));
+    gpuErrchk(cudaMemcpy(&(d_temp->expTerms), &e_temp, sizeof(d_temp->expTerms), cudaMemcpyHostToDevice));
+    cerr << d_fourier->bands << " " << d_fourier->nmasses << "\n";
+    //testMassComplexArray<<<1,1>>>(d_temp);
 
-    //createFourierLink<<<1,1>>>(d_fourier, a_temp);
+    d_fourier_pointers->d_fourier = d_temp;
+    d_fourier_pointers->d_massComplexArray = a_temp;
+    d_fourier_pointers->d_expTerms = e_temp;
 
-    // Copy ComplexVec array pointer to device
-
+    printf("Copied fourier data from host to device\n");
 }
 
 void Simulation::toArray() {
@@ -1189,12 +1197,18 @@ void Simulation::constraintsFromArray() {
 }
 
 void Simulation::fourierFromArray() {
-    CUDA_FOURIER *h_fourier;
-    gpuErrchk(cudaMemcpy(h_fourier, d_fourier, sizeof(h_fourier), cudaMemcpyHostToDevice));
-    gpuErrchk(cudaMemcpy(h_fourier->massComplexArray, d_fourier->massComplexArray,
-            sizeof(d_fourier->massComplexArray), cudaMemcpyHostToDevice));
+    CUDA_FOURIER *h_fourier = new CUDA_FOURIER();
+    ComplexVec *h_array = new ComplexVec[fourier->bands * fourier->nmasses];
 
+    gpuErrchk(cudaMemcpy(h_fourier, d_fourier_pointers->d_fourier, sizeof(CUDA_FOURIER), cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(h_array, d_fourier_pointers->d_massComplexArray,
+            sizeof(ComplexVec) * h_fourier->bands * h_fourier->nmasses, cudaMemcpyDeviceToHost));
+
+    h_fourier->massComplexArray = h_array;
     *fourier = *h_fourier;
+
+    delete h_fourier;
+    printf("Copied fourier from device to host\n");
 }
 
 void Simulation::fromArray() {
@@ -1538,34 +1552,40 @@ void Simulation::createGLFWWindow() {
 #endif
 #endif
 
+__global__ void testMassComplexArray(CUDA_FOURIER * fourier) {
+    for (int i = 0; i < fourier->bands; i++) {
+        for (int j = 0; j < fourier->nmasses; j++) {
+            fourier->massComplexArray[i * fourier->bands + j][0].x;
+        }
+    }
+    printf("MCA DONE\n");
+}
+
 __global__ void discreteFourierTransform(CUDA_MASS ** masses, CUDA_FOURIER * f, int size) {
     int i = blockDim.x * blockIdx.x + threadIdx.x;
 
     if (i < size) {
         CUDA_MASS &mass = *masses[i];
         Vec curPos = mass.pos;
-        if (f->expTerms)
-            printf("NOT NULL 1\n");
-        if (f->massComplexArray)
-            printf("NOT NULL 2\n");
+
+        //if (f->expTerms)
+        //    printf("NOT NULL 1\n");
+        //if (f->massComplexArray)
+        //    printf("NOT NULL 2\n");
         for (int j=0; j<f->bands; j++) {
-            /*
+
+            f->massComplexArray[j * f->bands + i] += curPos;
+            f->massComplexArray[j * f->bands + i] *= f->expTerms[j];
+
             if (i == 138 && j == 30) {
-                printf("CurFour: %f + %f i \n", f->massComplexArray[j][i][0].x, f->massComplexArray[j][i][0].y);
+                printf("CurFour: %f + %f i \n", f->massComplexArray[j * f->bands + i][0].x,
+                       f->massComplexArray[j * f->bands + i][0].y);
                 printf("CurPos: %f \n", curPos[0]);
                 printf("ExpTerm: %f + %f i \n", f->expTerms[j][0].x, f->expTerms[j][0].y);
             }
-             */
-
-            //f->massComplexArray[j][i] += curPos;
-            //f->massComplexArray[j][i] *= f->expTerms[j];
 
             //printf("PAIL: %i\n%i\n", sizeof(f->massComplexArray), sizeof(f->massComplexArray[0]));
-            /*
-            if (i == 138 && j == 30) {
-                printf("CurFour: %f + %f i \n", f->massComplexArray[j][i][0].x, f->massComplexArray[j][i][0].y);
-            }
-            */
+
         }
     }
 }
@@ -1608,6 +1628,7 @@ void Simulation::initCudaParameters() {
     d_constraints.num_balls = d_balls.size();
     d_constraints.num_planes = d_planes.size();
 
+    d_fourier_pointers = new CUDA_FOURIER_POINTERS();
     update_constraints = false;
     toArray();
 
@@ -1733,13 +1754,15 @@ void Simulation::step(double size) {
     }
 
     if (fourier) {
+        printf("%d %d, last record %f, n_count %d, n %d\n", T - fourier->last_recorded > fourier->ts,
+               fourier->n_count < fourier->n, fourier->last_recorded, fourier->n_count, fourier->n);
         if (T - fourier->last_recorded > fourier->ts && fourier->n_count < fourier->n) {
             // RUN SDFT KERNEL
-            discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier, masses.size());
-            //if (f->massComplexArray)
-            //    printf("YES ITS NOT NULL\n");
+            discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier_pointers->d_fourier, masses.size());
+            fourierFromArray(); // Get kernel data
             fourier->n_count++;
             fourier->last_recorded = T;
+            fourierToArray(); // Set updated variables on GPU
         }
     }
 

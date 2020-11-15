@@ -12,6 +12,7 @@
 
 class Fourier;
 struct CUDA_FOURIER;
+struct CUDA_FOURIER_POINTERS;
 
 struct CUDA_FOURIER {
     CUDA_FOURIER() = default;
@@ -24,9 +25,15 @@ struct CUDA_FOURIER {
     int n_count;
     int nmasses;
     ComplexVec *expTerms;
-    double *frequencies;
-    Vec ** modeShapes;
     ComplexVec * massComplexArray; // 1D array
+};
+
+struct CUDA_FOURIER_POINTERS {
+    CUDA_FOURIER_POINTERS() = default;
+
+    CUDA_FOURIER * d_fourier;
+    ComplexVec * d_massComplexArray;
+    ComplexVec * d_expTerms;
 };
 
 class Fourier {

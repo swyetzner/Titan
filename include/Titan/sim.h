@@ -182,7 +182,7 @@ private:
     thrust::device_vector<CudaContactPlane> d_planes; // used for constraints
     thrust::device_vector<CudaBall> d_balls; // used for constraints
 
-    CUDA_FOURIER * d_fourier;
+    CUDA_FOURIER_POINTERS * d_fourier_pointers;
 
     CUDA_GLOBAL_CONSTRAINTS d_constraints;
     bool update_constraints;

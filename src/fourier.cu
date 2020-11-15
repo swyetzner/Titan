@@ -1,7 +1,7 @@
 //
 // Created by sw3390 on 9/7/20.
 //
-
+#include <assert.h>
 #include "fourier.h"
 
 Fourier::Fourier(double uf, double lf, int b) {
@@ -24,8 +24,6 @@ void Fourier::operator=(CUDA_FOURIER & fourier) {
     n_count = fourier.n_count;
     nmasses = fourier.nmasses;
     expTerms = fourier.expTerms;
-    frequencies = fourier.frequencies;
-    modeShapes = fourier.modeShapes;
     expTerms = fourier.expTerms;
 
     for (int i = 0; i < bands; i++) {
@@ -43,14 +41,14 @@ CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
     n_count = fourier.n_count;
     nmasses = fourier.nmasses;
     expTerms = fourier.expTerms;
-    frequencies = fourier.frequencies;
-    modeShapes = fourier.modeShapes;
     expTerms = fourier.expTerms;
 
-    massComplexArray = new ComplexVec[bands * nmasses];
-    for (int i = 0; i < bands; i++) {
-        for (int j = 0; j < nmasses; j++) {
-            massComplexArray[i*bands + j] = fourier.massComplexArray[i][j];
+    if (fourier.massComplexArray) {
+        massComplexArray = new ComplexVec[bands * nmasses];
+        for (int i = 0; i < bands; i++) {
+            for (int j = 0; j < nmasses; j++) {
+                massComplexArray[i * bands + j] = fourier.massComplexArray[i][j];
+            }
         }
     }
 }
