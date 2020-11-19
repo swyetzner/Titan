@@ -780,7 +780,9 @@ void Simulation::getAll() {
 
     massFromArray(); // TODO make a note of this
     springFromArray();
-    fourierFromArray();
+    if (fourier) {
+        fourierFromArray();
+    }
 }
 
 void Simulation::set(Container * c) {
@@ -892,7 +894,10 @@ void Simulation::setAll() {
         createSpringPointers<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(thrust::raw_pointer_cast(d_springs.data()), d_data, springs.size());
         gpuErrchk(cudaFree(d_data));
     }
-    fourierToArray();
+    if (fourier) {
+        cout << "FIVE\n";
+        fourierToArray();
+    }
 }
 
 
@@ -1056,10 +1061,8 @@ CUDA_SPRING ** Simulation::springToArray() {
 //}
 
 void Simulation::fourierToArray() {
-
     CUDA_FOURIER * d_fourier = new CUDA_FOURIER(*fourier);
     CUDA_FOURIER * d_temp;
-
     gpuErrchk(cudaMalloc((void **)& d_temp, sizeof(CUDA_FOURIER)));
 
     ComplexVec * a_temp;
@@ -1085,7 +1088,10 @@ void Simulation::fourierToArray() {
 void Simulation::toArray() {
     CUDA_MASS ** d_mass = massToArray(); // must come first
     CUDA_SPRING ** d_spring = springToArray();
-    fourierToArray();
+    if (fourier) {
+        cout << "FOUR\n";
+        fourierToArray();
+    }
 }
 
 __global__ void fromMassPointers(CUDA_MASS ** d_mass, CUDA_MASS * data, int size) {
@@ -1215,7 +1221,9 @@ void Simulation::fromArray() {
     massFromArray();
     springFromArray();
     constraintsFromArray();
-    fourierFromArray();
+    if (fourier) {
+        fourierFromArray();
+    }
 }
 
 void Simulation::rebalanceMasses(double m) {
@@ -1627,11 +1635,9 @@ void Simulation::initCudaParameters() {
     d_constraints.d_planes = thrust::raw_pointer_cast(&d_planes[0]);
     d_constraints.num_balls = d_balls.size();
     d_constraints.num_planes = d_planes.size();
-
     d_fourier_pointers = new CUDA_FOURIER_POINTERS();
     update_constraints = false;
     toArray();
-
     d_mass = thrust::raw_pointer_cast(d_masses.data());
     d_spring = thrust::raw_pointer_cast(d_springs.data());
 }

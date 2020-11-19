@@ -132,7 +132,7 @@ public:
     std::vector<Spring *> springs;
     std::vector<Container *> containers;
     std::vector<ContactPlane *> planes;
-    Fourier * fourier;
+    Fourier * fourier = nullptr;
 
     Vec global; // global force
 
