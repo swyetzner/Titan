@@ -48,10 +48,10 @@ public:
     double ts; // Derived
     double last_recorded;
 
-    ComplexVec *expTerms;
-    double *frequencies;
-    Vec ** modeShapes;
-    ComplexVec ** massComplexArray;
+    ComplexVec *expTerms = nullptr;
+    double *frequencies = nullptr;
+    Vec ** modeShapes = nullptr;
+    ComplexVec ** massComplexArray = nullptr;
 
     Fourier() = default;
     Fourier(double uf, double lf, int b);

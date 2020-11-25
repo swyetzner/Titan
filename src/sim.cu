@@ -115,6 +115,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=f
 }
 
 Simulation::Simulation() {
+    T = 0.0;
     dt = 0.0;
     RUNNING = false;
     STARTED = false;
@@ -895,7 +896,6 @@ void Simulation::setAll() {
         gpuErrchk(cudaFree(d_data));
     }
     if (fourier) {
-        cout << "FIVE\n";
         fourierToArray();
     }
 }
@@ -1082,14 +1082,13 @@ void Simulation::fourierToArray() {
     d_fourier_pointers->d_massComplexArray = a_temp;
     d_fourier_pointers->d_expTerms = e_temp;
 
-    printf("Copied fourier data from host to device\n");
+    //printf("Copied fourier data from host to device\n");
 }
 
 void Simulation::toArray() {
     CUDA_MASS ** d_mass = massToArray(); // must come first
     CUDA_SPRING ** d_spring = springToArray();
     if (fourier) {
-        cout << "FOUR\n";
         fourierToArray();
     }
 }
@@ -1205,16 +1204,20 @@ void Simulation::constraintsFromArray() {
 void Simulation::fourierFromArray() {
     CUDA_FOURIER *h_fourier = new CUDA_FOURIER();
     ComplexVec *h_array = new ComplexVec[fourier->bands * fourier->nmasses];
+    ComplexVec *h_exp = new ComplexVec[fourier->bands];
 
     gpuErrchk(cudaMemcpy(h_fourier, d_fourier_pointers->d_fourier, sizeof(CUDA_FOURIER), cudaMemcpyDeviceToHost));
     gpuErrchk(cudaMemcpy(h_array, d_fourier_pointers->d_massComplexArray,
             sizeof(ComplexVec) * h_fourier->bands * h_fourier->nmasses, cudaMemcpyDeviceToHost));
+    gpuErrchk(cudaMemcpy(h_exp, d_fourier_pointers->d_expTerms, sizeof(ComplexVec) * h_fourier->bands,
+                         cudaMemcpyDeviceToHost));
 
     h_fourier->massComplexArray = h_array;
+    h_fourier->expTerms = h_exp;
     *fourier = *h_fourier;
 
     delete h_fourier;
-    printf("Copied fourier from device to host\n");
+    //printf("Copied fourier from device to host\n");
 }
 
 void Simulation::fromArray() {
@@ -1563,7 +1566,7 @@ void Simulation::createGLFWWindow() {
 __global__ void testMassComplexArray(CUDA_FOURIER * fourier) {
     for (int i = 0; i < fourier->bands; i++) {
         for (int j = 0; j < fourier->nmasses; j++) {
-            fourier->massComplexArray[i * fourier->bands + j][0].x;
+            fourier->massComplexArray[i * fourier->nmasses + j][0].x;
         }
     }
     printf("MCA DONE\n");
@@ -1576,24 +1579,9 @@ __global__ void discreteFourierTransform(CUDA_MASS ** masses, CUDA_FOURIER * f, 
         CUDA_MASS &mass = *masses[i];
         Vec curPos = mass.pos;
 
-        //if (f->expTerms)
-        //    printf("NOT NULL 1\n");
-        //if (f->massComplexArray)
-        //    printf("NOT NULL 2\n");
         for (int j=0; j<f->bands; j++) {
-
-            f->massComplexArray[j * f->bands + i] += curPos;
-            f->massComplexArray[j * f->bands + i] *= f->expTerms[j];
-
-            if (i == 138 && j == 30) {
-                printf("CurFour: %f + %f i \n", f->massComplexArray[j * f->bands + i][0].x,
-                       f->massComplexArray[j * f->bands + i][0].y);
-                printf("CurPos: %f \n", curPos[0]);
-                printf("ExpTerm: %f + %f i \n", f->expTerms[j][0].x, f->expTerms[j][0].y);
-            }
-
-            //printf("PAIL: %i\n%i\n", sizeof(f->massComplexArray), sizeof(f->massComplexArray[0]));
-
+            f->massComplexArray[j * size + i] += curPos;
+            f->massComplexArray[j * size + i] *= f->expTerms[j];
         }
     }
 }
@@ -1657,6 +1645,7 @@ void Simulation::start() {
     STARTED = true;
 
     T = 0;
+    cout << "SIMULATION STARTED: T IS " << T << "\n";
 
     if (this -> dt == 0.0) { // if dt hasn't been set by the user.
         dt = 0.01; // min delta
@@ -1760,8 +1749,8 @@ void Simulation::step(double size) {
     }
 
     if (fourier) {
-        printf("%d %d, last record %f, n_count %d, n %d\n", T - fourier->last_recorded > fourier->ts,
-               fourier->n_count < fourier->n, fourier->last_recorded, fourier->n_count, fourier->n);
+        //printf("%d %d, last record %f, n_count %d, n %d\n", T - fourier->last_recorded > fourier->ts,
+        //       fourier->n_count < fourier->n, fourier->last_recorded, fourier->n_count, fourier->n);
         if (T - fourier->last_recorded > fourier->ts && fourier->n_count < fourier->n) {
             // RUN SDFT KERNEL
             discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier_pointers->d_fourier, masses.size());
@@ -2464,6 +2453,9 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
     f->ts = real_ts;
     f->upperFreq = 0.5 * fs;
     f->n = ceil(fs * f->bands / (f->upperFreq - f->lowerFreq));
+    if (f->n % 2 != 0) {
+        f->n = f->n + 1; // This just makes things a little easier for everyone
+    }
     f->n_count = 0;
     f->nmasses = nmasses;
 
@@ -2474,6 +2466,10 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
 
     f->expTerms = new ComplexVec[f->bands];
     f->frequencies = new double[f->bands];
+
+    ofstream FParamsFile;
+    FParamsFile.open("fParams.csv");
+    FParamsFile << "N: " << f->n << "\nLow Band: " << low_band << "\nNum Bands: " << f->bands << "\nTs: " << real_ts << "\n";
 
     // Initialize 2d array of complex vecs for each mass
     // and 2d array of real vecs for simplified mode shapes
@@ -2489,10 +2485,14 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
             f->modeShapes[i][j] = Vec();
         }
 
-        double x = 2*pi*(i+low_band)/(f->n/2);
+        double x = 2*pi*(i+low_band)/(f->n);
         f->expTerms[i] = ComplexVec(make_cuDoubleComplex(0, x), make_cuDoubleComplex(0, x), make_cuDoubleComplex(0, x)).exp();
+        FParamsFile << f->expTerms[i][0].x;
+        FParamsFile << std::showpos << f->expTerms[i][0].y << "j\n";
 
-        f->frequencies[i] = f->upperFreq*2*pi*(low_band+i)/(f->n/2);
+        f->frequencies[i] = fs*2*pi*(low_band+i)/(f->n);
+
+        FParamsFile << f->frequencies[i] << "\n";
     }
 }
 
