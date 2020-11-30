@@ -1751,7 +1751,7 @@ void Simulation::step(double size) {
     if (fourier) {
         //printf("%d %d, last record %f, n_count %d, n %d\n", T - fourier->last_recorded > fourier->ts,
         //       fourier->n_count < fourier->n, fourier->last_recorded, fourier->n_count, fourier->n);
-        if (T - fourier->last_recorded > fourier->ts && fourier->n_count < fourier->n) {
+        if (fourier->n_count < fourier->n) {
             // RUN SDFT KERNEL
             discreteFourierTransform<<<massBlocksPerGrid, THREADS_PER_BLOCK>>>(d_mass, d_fourier_pointers->d_fourier, masses.size());
             fourierFromArray(); // Get kernel data
@@ -2447,15 +2447,15 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
     double pi = atan(1.0) * 4;
     assert(f->upperFreq != 0);
     double ideal_ts = 1 / (2 * f->upperFreq);
-    double real_ts = ceil(ideal_ts / ts) * ts;
+    //double real_ts = ceil(ideal_ts / ts) * ts;
+    double real_ts = ts;
     double fs = 1 / real_ts;
 
     f->ts = real_ts;
-    f->upperFreq = 0.5 * fs;
+    //f->upperFreq = 0.5 * fs;
     f->n = ceil(fs * f->bands / (f->upperFreq - f->lowerFreq));
-    if (f->n % 2 != 0) {
-        f->n = f->n + 1; // This just makes things a little easier for everyone
-    }
+
+    f->n = (f->n%2==0) ? f->n : f->n+1; // This just makes everything a little easier for everyone
     f->n_count = 0;
     f->nmasses = nmasses;
 
