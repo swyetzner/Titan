@@ -36,8 +36,10 @@ void Fourier::operator=(CUDA_FOURIER & fourier) {
     n = fourier.n;
     n_count = fourier.n_count;
     nmasses = fourier.nmasses;
-    expTerms = fourier.expTerms;
-    expTerms = fourier.expTerms;
+
+    for (int i = 0; i < bands; i++) {
+        expTerms[i] = fourier.expTerms[i];
+    }
 
     for (int i = 0; i < bands; i++) {
         for (int j = 0; j < nmasses; j++) {
