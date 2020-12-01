@@ -1735,33 +1735,28 @@ void Simulation::step(double size) {
         //for (int i = 0; i < NUM_QUEUED_KERNELS; i++) {
         //cudaDeviceSynchronize();
 
-        computeSpringForces << < springBlocksPerGrid, THREADS_PER_BLOCK >> >
-                                                      (d_spring, springs.size(), T); // compute mass forces after syncing
+        computeSpringForces << < springBlocksPerGrid, THREADS_PER_BLOCK >> >(d_spring, springs.size(), T); // compute mass forces after syncing
         gpuErrchk(cudaPeekAtLastError());
 
-        massForcesAndUpdate << < massBlocksPerGrid, THREADS_PER_BLOCK >> >
-                                                    (d_mass, global, d_constraints, masses.size());
+        massForcesAndUpdate << < massBlocksPerGrid, THREADS_PER_BLOCK >> >(d_mass, global, d_constraints, masses.size());
         gpuErrchk(cudaPeekAtLastError());
-
-        T += dt;
-
-        //}
-
-        stepped += dt;
 
         if (fourier) {
             //printf("%d %d, last record %f, n_count %d, n %d\n", T - fourier->last_recorded > fourier->ts,
             //       fourier->n_count < fourier->n, fourier->last_recorded, fourier->n_count, fourier->n);
             if (fourier->n_count < fourier->n) {
                 // RUN SDFT KERNEL
-                discreteFourierTransform << < massBlocksPerGrid, THREADS_PER_BLOCK >> >
-                                                                 (d_mass, d_fourier_pointers->d_fourier, masses.size());
+                discreteFourierTransform << < massBlocksPerGrid, THREADS_PER_BLOCK >> >(d_mass, d_fourier_pointers->d_fourier, masses.size());
                 fourierFromArray(); // Get kernel data
                 fourier->n_count++;
                 fourier->last_recorded = T;
                 fourierToArray(); // Set updated variables on GPU
             }
         }
+
+        T += dt;
+
+        stepped += dt;
     }
 
     RUNNING = false;
