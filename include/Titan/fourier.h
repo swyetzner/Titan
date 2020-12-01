@@ -55,6 +55,7 @@ public:
 
     Fourier() = default;
     Fourier(double uf, double lf, int b);
+    ~Fourier();
 
     void operator=(CUDA_FOURIER & fourier);
 };

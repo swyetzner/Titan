@@ -2464,7 +2464,6 @@ void Simulation::deriveFourierParameters(Fourier *f, double ts, int nmasses) {
 
     int low_band = int(round(f->lowerFreq / fres));
 
-    f->expTerms = new ComplexVec[f->bands];
     f->frequencies = new double[f->bands];
 
     ofstream FParamsFile;

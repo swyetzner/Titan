@@ -16,6 +16,19 @@ Fourier::Fourier(double uf, double lf, int b) {
     massComplexArray = nullptr;
 }
 
+Fourier::~Fourier() {
+    for (int i = 0; i < bands; i++) {
+        delete[] massComplexArray[i];
+        delete[] modeShapes[i];
+    }
+
+    delete[] massComplexArray;
+    delete[] modeShapes;
+
+    delete[] expTerms;
+    delete[] frequencies;
+}
+
 void Fourier::operator=(CUDA_FOURIER & fourier) {
     upperFreq = fourier.upperFreq;
     lowerFreq = fourier.lowerFreq;
