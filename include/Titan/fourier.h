@@ -17,6 +17,7 @@ struct CUDA_FOURIER_POINTERS;
 struct CUDA_FOURIER {
     CUDA_FOURIER() = default;
     CUDA_FOURIER(Fourier & fourier);
+    ~CUDA_FOURIER();
 
     double upperFreq;
     double lowerFreq;
@@ -29,7 +30,11 @@ struct CUDA_FOURIER {
 };
 
 struct CUDA_FOURIER_POINTERS {
-    CUDA_FOURIER_POINTERS() = default;
+    CUDA_FOURIER_POINTERS() {
+        d_fourier = nullptr;
+        d_massComplexArray = nullptr;
+        d_expTerms = nullptr;
+    }
 
     CUDA_FOURIER * d_fourier;
     ComplexVec * d_massComplexArray;

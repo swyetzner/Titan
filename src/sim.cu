@@ -1063,6 +1063,11 @@ CUDA_SPRING ** Simulation::springToArray() {
 void Simulation::fourierToArray() {
     CUDA_FOURIER * d_fourier = new CUDA_FOURIER(*fourier);
     CUDA_FOURIER * d_temp;
+    if (d_fourier_pointers->d_fourier != nullptr) {
+        gpuErrchk(cudaFree(d_fourier_pointers->d_fourier));
+        gpuErrchk(cudaFree(d_fourier_pointers->d_massComplexArray));
+        gpuErrchk(cudaFree(d_fourier_pointers->d_expTerms));
+    }
     gpuErrchk(cudaMalloc((void **)& d_temp, sizeof(CUDA_FOURIER)));
 
     ComplexVec * a_temp;
@@ -1075,7 +1080,6 @@ void Simulation::fourierToArray() {
     gpuErrchk(cudaMemcpy(e_temp, d_fourier->expTerms, sizeof(ComplexVec) * d_fourier->bands, cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(&(d_temp->massComplexArray), &a_temp, sizeof(d_temp->massComplexArray), cudaMemcpyHostToDevice));
     gpuErrchk(cudaMemcpy(&(d_temp->expTerms), &e_temp, sizeof(d_temp->expTerms), cudaMemcpyHostToDevice));
-    cerr << d_fourier->bands << " " << d_fourier->nmasses << "\n";
     //testMassComplexArray<<<1,1>>>(d_temp);
 
     d_fourier_pointers->d_fourier = d_temp;
@@ -1083,6 +1087,7 @@ void Simulation::fourierToArray() {
     d_fourier_pointers->d_expTerms = e_temp;
 
     //printf("Copied fourier data from host to device\n");
+    delete d_fourier;
 }
 
 void Simulation::toArray() {

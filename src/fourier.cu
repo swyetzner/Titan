@@ -53,15 +53,24 @@ CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
     n = fourier.n;
     n_count = fourier.n_count;
     nmasses = fourier.nmasses;
-    expTerms = fourier.expTerms;
-    expTerms = fourier.expTerms;
+    massComplexArray = new ComplexVec[bands * nmasses];
+    expTerms = new ComplexVec[bands];
 
+    if (fourier.expTerms) {
+        for (int i = 0; i < bands; i++) {
+            expTerms[i] = fourier.expTerms[i];
+        }
+    }
     if (fourier.massComplexArray) {
-        massComplexArray = new ComplexVec[bands * nmasses];
         for (int i = 0; i < bands; i++) {
             for (int j = 0; j < nmasses; j++) {
                 massComplexArray[i * nmasses + j] = fourier.massComplexArray[i][j];
             }
         }
     }
+}
+
+CUDA_FOURIER::~CUDA_FOURIER() {
+    delete[] massComplexArray;
+    delete[] expTerms;
 }
