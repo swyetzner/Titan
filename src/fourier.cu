@@ -9,6 +9,7 @@ Fourier::Fourier(double uf, double lf, int b) {
     lowerFreq = lf;
     bands = b;
     n = 0;
+    n_count = 0;
     ts = 0;
     last_recorded = 0;
 
@@ -33,8 +34,6 @@ void Fourier::operator=(CUDA_FOURIER & fourier) {
     upperFreq = fourier.upperFreq;
     lowerFreq = fourier.lowerFreq;
     bands = fourier.bands;
-    n = fourier.n;
-    n_count = fourier.n_count;
     nmasses = fourier.nmasses;
 
     for (int i = 0; i < bands; i++) {
@@ -52,8 +51,6 @@ CUDA_FOURIER::CUDA_FOURIER(Fourier &fourier) {
     upperFreq = fourier.upperFreq;
     lowerFreq = fourier.lowerFreq;
     bands = fourier.bands;
-    n = fourier.n;
-    n_count = fourier.n_count;
     nmasses = fourier.nmasses;
     massComplexArray = new ComplexVec[bands * nmasses];
     expTerms = new ComplexVec[bands];

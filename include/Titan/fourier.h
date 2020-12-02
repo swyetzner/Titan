@@ -22,8 +22,6 @@ struct CUDA_FOURIER {
     double upperFreq;
     double lowerFreq;
     int bands;
-    int n;
-    int n_count;
     int nmasses;
     ComplexVec *expTerms;
     ComplexVec * massComplexArray; // 1D array

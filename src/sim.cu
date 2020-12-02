@@ -1752,10 +1752,10 @@ void Simulation::step(double size) {
             if (fourier->n_count < fourier->n) {
                 // RUN SDFT KERNEL
                 discreteFourierTransform << < massBlocksPerGrid, THREADS_PER_BLOCK >> >(d_mass, d_fourier_pointers->d_fourier, masses.size());
-                fourierFromArray(); // Get kernel data
+                //fourierFromArray(); // Get kernel data
                 fourier->n_count++;
                 fourier->last_recorded = T;
-                fourierToArray(); // Set updated variables on GPU
+                //fourierToArray(); // Set updated variables on GPU
             }
         }
 
