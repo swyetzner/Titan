@@ -1221,10 +1221,7 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
     if ( i < num_springs ) {
         CUDA_SPRING & spring = *d_spring[i];
 
-        if (!spring._compute)
-            return;
-
-        if (!spring._k)
+        if (!spring._compute || !spring._k)
             return;
 
         if (spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid) // TODO might be expensive with CUDA instruction set
@@ -1233,7 +1230,8 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
         Vec temp = (spring._right -> pos) - (spring._left -> pos);
         //	printf("%d, %f, %f\n",spring._type, spring._omega,t);
         double scale=1.0;
-        double pi = atan(1.0) * 4;
+        // this is global now
+        double pi = 3.1415926535;
         double cyclePoint;
         spring._actuation = 0.0;
         switch (spring._type) {
@@ -1263,10 +1261,10 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
                 } break;
             default: break;
         }
-        double tempNorm = temp.norm();
-        if (tempNorm == 0) {
-            tempNorm = 1E-6;
-        }
+        double tempNorm = temp.norm()+1E-6;
+      //  if (tempNorm == 0) {
+      //      tempNorm = 1E-6;
+      //  }
         Vec force = spring._k * (scale * spring._rest - tempNorm) * (temp / tempNorm);
 
         if (force.norm() > spring._max_stress) spring._max_stress = force.norm();
@@ -1276,12 +1274,8 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
         spring._curr_force = (scale * spring._rest > tempNorm)? force.norm() : -force.norm();
 
 #ifdef CONSTRAINTS
-        if (spring._right -> constraints.fixed == false) {
-            spring._right->force.atomicVecAdd(force); // need atomics here
-        }
-        if (spring._left -> constraints.fixed == false) {
-            spring._left->force.atomicVecAdd(-force);
-        }
+        spring._right->force.atomicVecAdd(force*!(spring._right -> constraints.fixed)); // need atomics here
+        spring._left->force.atomicVecAdd(-force*!(spring._left -> constraints.fixed));
 #else
         spring._right->force.atomicVecAdd(force);
         spring._left->force.atomicVecAdd(-force);
@@ -1293,6 +1287,11 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
 double Simulation::time() {
     return this -> T;
 }
+
+double Simulation::gdt() {
+    return this -> dt;
+}
+
 
 bool Simulation::running() {
     return this -> RUNNING;
@@ -1644,7 +1643,6 @@ void Simulation::step(double size) {
 
         //for (int i = 0; i < NUM_QUEUED_KERNELS; i++) {
             //cudaDeviceSynchronize();
-
             computeSpringForces<<<springBlocksPerGrid, THREADS_PER_BLOCK>>>(d_spring, springs.size(), T); // compute mass forces after syncing
             gpuErrchk( cudaPeekAtLastError() );
 
