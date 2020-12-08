@@ -1220,7 +1220,9 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
 
     if ( i < num_springs ) {
         CUDA_SPRING & spring = *d_spring[i];
-        int calculate = !(!spring._compute || !spring._k || spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid);
+
+        if (!spring._compute || !spring._k || spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid)
+            return;
 
         Vec temp = (spring._right -> pos) - (spring._left -> pos);
         //	printf("%d, %f, %f\n",spring._type, spring._omega,t);
@@ -1249,7 +1251,6 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
                     spring._actuation = sin(spring._omega * cyclePoint);
                 } break;
             case ACTIVE_EXPAND_THEN_NEUTRAL:
-
                 cyclePoint = fmod(t - spring._offset, spring._period);
                 if (cyclePoint < pi / spring._omega && t >= spring._offset) {
                     scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
@@ -1257,24 +1258,25 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
                 } break;
             default: break;
         }
-
-        double tempNorm = temp.norm();
-        tempNorm = tempNorm+(1E-6*(tempNorm==0));
+        double tempNorm = temp.norm()
+        tempNorm = tempNorm+1E-6*(tempNorm==0);
       //  if (tempNorm == 0) {
       //      tempNorm = 1E-6;
       //  }
         Vec force = spring._k * (scale * spring._rest - tempNorm) * (temp / tempNorm);
 
-        spring._max_stress = (force.norm()*(force.norm() > spring._max_stress))*calculate + (spring._max_stress*!(force.norm() > spring._max_stress));
-        spring._broken = ((force.norm() > spring._break_force)*calculate)*spring._broken*!calculate;
-        spring._curr_force = ((scale * spring._rest > tempNorm)? force.norm() : -force.norm())*calculate + spring._curr_force*!calculate;
+        if (force.norm() > spring._max_stress) spring._max_stress = force.norm();
+
+        if (force.norm() > spring._break_force) spring._broken = true;
+
+        spring._curr_force = (scale * spring._rest > tempNorm)? force.norm() : -force.norm();
 
 #ifdef CONSTRAINTS
-        spring._right->force.atomicVecAdd(force*!(spring._right -> constraints.fixed)*calculate); // need atomics here
-        spring._left->force.atomicVecAdd(-force*!(spring._left -> constraints.fixed)*calculate);
+        spring._right->force.atomicVecAdd(force*!(spring._right -> constraints.fixed)); // need atomics here
+        spring._left->force.atomicVecAdd(-force*!(spring._left -> constraints.fixed));
 #else
-        spring._right->force.atomicVecAdd(force*calculate);
-        spring._left->force.atomicVecAdd(-force*calculate);
+        spring._right->force.atomicVecAdd(force);
+        spring._left->force.atomicVecAdd(-force);
 #endif
 
     }
@@ -1341,10 +1343,8 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
         mass.vel = (mass.vel + mass.acc * mass.dt)*mass.damping;
         mass.pos = mass.pos + mass.vel * mass.dt;
 
-        if (mass.extduration < mass.T) {
-            // External force expires
-            mass.extforce = Vec(0, 0, 0);
-        }
+        mass.extforce = mass.extforce*!(mass.extduration<mass.T) + Vec(0, 0, 0)*(mass.extduration<mass.T);
+        
         mass.force = mass.extforce;
 
         mass.T += mass.dt;
