@@ -1258,7 +1258,7 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
                 } break;
             default: break;
         }
-        double tempNorm = temp.norm()
+        double tempNorm = temp.norm();
         tempNorm = tempNorm+1E-6*(tempNorm==0);
       //  if (tempNorm == 0) {
       //      tempNorm = 1E-6;
