@@ -1216,47 +1216,39 @@ __global__ void minStressSpringReduction(CUDA_SPRING **d_spring, int num_springs
 }
 
 __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, double t) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if ( i < num_springs ) {
+    for (int i = blockDim.x * blockIdx.x + threadIdx.x; i < num_springs; i += blockDim.x * gridDim.x) {
+
         CUDA_SPRING & spring = *d_spring[i];
 
+   //     bool compute = (!spring._compute || !spring._k || spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid);
+        
         if (!spring._compute || !spring._k || spring._left == nullptr || spring._right == nullptr || ! spring._left -> valid || ! spring._right -> valid)
             return;
-
+        
         Vec temp = (spring._right -> pos) - (spring._left -> pos);
         //	printf("%d, %f, %f\n",spring._type, spring._omega,t);
         double scale=1.0;
-        // this is global now
         double pi = 3.1415926535;
-        double cyclePoint;
-        spring._actuation = 0.0;
+        double cyclePoint = fmod(t - spring._offset, spring._period);
+        bool cycle = (cyclePoint < 2 * pi / spring._omega && t >= spring._offset);
+        bool neutral = (cyclePoint < pi / spring._omega && t >= spring._offset);
+        double bTerm = (0.2 * sin(spring._omega * cyclePoint))*cycle;
+        spring._actuation = 0.0 + sin(spring._omega * cyclePoint)*cycle;
+
         switch (spring._type) {
             case ACTIVE_CONTRACT_THEN_EXPAND:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
-                    scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
+                scale += (1 - bTerm);
+                break;
             case ACTIVE_EXPAND_THEN_CONTRACT:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < 2 * pi / spring._omega && t >= spring._offset) {
-                    scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
+                scale += (1 + bTerm);
+                break;
             case ACTIVE_CONTRACT_THEN_NEUTRAL:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < pi / spring._omega && t >= spring._offset) {
-                    scale = (1 - 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
+                scale += (1 - bTerm);
+                break;
             case ACTIVE_EXPAND_THEN_NEUTRAL:
-                cyclePoint = fmod(t - spring._offset, spring._period);
-                if (cyclePoint < pi / spring._omega && t >= spring._offset) {
-                    scale = (1 + 0.2 * sin(spring._omega * cyclePoint));
-                    spring._actuation = sin(spring._omega * cyclePoint);
-                } break;
-            default: break;
+                scale += (1 + bTerm);
+                break;
         }
         double tempNorm = temp.norm();
         tempNorm = tempNorm+1E-6*(tempNorm==0);
@@ -1264,20 +1256,21 @@ __global__ void computeSpringForces(CUDA_SPRING ** d_spring, int num_springs, do
       //      tempNorm = 1E-6;
       //  }
         Vec force = spring._k * (scale * spring._rest - tempNorm) * (temp / tempNorm);
+        double norm = force.norm();
 
-        if (force.norm() > spring._max_stress) spring._max_stress = force.norm();
+        if (norm > spring._max_stress) spring._max_stress = norm;
 
-        if (force.norm() > spring._break_force) spring._broken = true;
+        if (norm > spring._break_force) spring._broken = true;
 
-        spring._curr_force = (scale * spring._rest > tempNorm)? force.norm() : -force.norm();
+        spring._curr_force = (scale * spring._rest > tempNorm)? norm : -norm;
 
-#ifdef CONSTRAINTS
-        spring._right->force.atomicVecAdd(force*!(spring._right -> constraints.fixed)); // need atomics here
-        spring._left->force.atomicVecAdd(-force*!(spring._left -> constraints.fixed));
-#else
+//#ifdef CONSTRAINTS
+//        spring._right->force.atomicVecAdd(force*!(spring._right -> constraints.fixed)); // need atomics here
+//        spring._left->force.atomicVecAdd(-force*!(spring._left -> constraints.fixed));
+//#else
         spring._right->force.atomicVecAdd(force);
         spring._left->force.atomicVecAdd(-force);
-#endif
+//#endif
 
     }
 }
@@ -1296,16 +1289,19 @@ bool Simulation::running() {
 }
 
 __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL_CONSTRAINTS c, int num_masses) {
-    int i = blockDim.x * blockIdx.x + threadIdx.x;
+    int i = blockDim.x * blockIdx.x + threadIdx.x; 
 
     if (i < num_masses) {
+        bool fixed = false;
         CUDA_MASS &mass = *d_mass[i];
-
+/*
 #ifdef CONSTRAINTS
+        
         if (mass.constraints.fixed == 1)
             return;
+        
 #endif
-
+*/
         mass.force += global * mass.m;
 
         for (int j = 0; j < c.num_planes; j++) { // global constraints
@@ -1317,6 +1313,8 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
         }
 
 #ifdef CONSTRAINTS
+        fixed = mass.constraints.fixed;
+
         for (int j = 0; j < mass.constraints.num_contact_planes; j++) { // local constraints
             mass.constraints.contact_plane[j].applyForce(&mass);
         }
@@ -1333,15 +1331,14 @@ __global__ void massForcesAndUpdate(CUDA_MASS ** d_mass, Vec global, CUDA_GLOBAL
             mass.constraints.direction[j].applyForce(&mass);
         }
 
-        if (mass.vel.norm() != 0.0) { // NOTE TODO this is really janky. On certain platforms, the following code causes excessive memory usage on the GPU.
-            double norm = mass.vel.norm();
-            mass.force += - mass.constraints.drag_coefficient * pow(norm, 2) * mass.vel / norm; // drag
-        }
+ //       if (mass.vel.norm() != 0.0) { // NOTE TODO this is really janky. On certain platforms, the following code causes excessive memory usage on the GPU.
+            mass.force += -(mass.constraints.drag_coefficient*mass.vel.norm()*mass.vel)*(mass.vel.norm()!=0); // drag
+ //       }
 #endif
 
         mass.acc = mass.force / mass.m;
         mass.vel = (mass.vel + mass.acc * mass.dt)*mass.damping;
-        mass.pos = mass.pos + mass.vel * mass.dt;
+        mass.pos = mass.pos + (mass.vel * mass.dt)*(!fixed);
 
         mass.extforce = mass.extforce*!(mass.extduration<mass.T) + Vec(0, 0, 0)*(mass.extduration<mass.T);
         
@@ -1541,7 +1538,7 @@ void Simulation::initCudaParameters() {
     toArray();
 
     d_mass = thrust::raw_pointer_cast(d_masses.data());
-    d_spring = thrust::raw_pointer_cast(d_springs.data());
+    d_spring = thrust::raw_pointer_cast(d_springs.data());\
 }
 
 void Simulation::start() {
